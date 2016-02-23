@@ -16,6 +16,9 @@ regResolution = re.compile(r'^\s*(.). (.*)')
 # Get paths to all files in kb subdirectory
 kbArticlePaths = glob.glob('kb/*')
 
+# Dictionary to store KB articles
+kbDict = {}
+
 # Load contents of each file
 for articlePath in kbArticlePaths:
 
@@ -23,8 +26,8 @@ for articlePath in kbArticlePaths:
 	id = '' # Stores the key of the article (ex: 'KB0012345')
 	title = '' # Stores the title of the article (ex: 'email access')
 	environment = [] # Stores a list of the Environment tags (ex: ['Employee email system', 'Agent email system'])
-	issue = []	# Stores a list of the Issue/Error entries (ex: ['User is not able to login to email system via Outlook', 'User is not able to login to web-email from a web browser'])
-	cause = []	# Stores a list of the Cause entires (ex: ['User entered incorrect ID and Password.', 'User email account is locked after three consecutive failed login attempts.'])
+	issues = []	# Stores a list of the Issue/Error entries (ex: ['User is not able to login to email system via Outlook', 'User is not able to login to web-email from a web browser'])
+	causes = []	# Stores a list of the Cause entires (ex: ['User entered incorrect ID and Password.', 'User email account is locked after three consecutive failed login attempts.'])
 	resolution = [] # Stores a LIST OF LISTS. Lists contain [text, level], where 'text' is the resolution text and 'level'
 				    # is the list level of the entry (either 0 or 1).
 				    # ex: [['Resolve the incident by unlocking the email account.', 0],
@@ -35,6 +38,8 @@ for articlePath in kbArticlePaths:
 
 	# track which section of the article is currently being read
 	currentSection = 'initial'
+
+	# Parse the text of each article into respective variables/lists
 	with open(articlePath, encoding = 'utf-8') as f:
 		# parse articleText
 		for line in f:
@@ -51,7 +56,6 @@ for articlePath in kbArticlePaths:
 						if m:
 							id = m.group(1)
 							title = m.group(2)
-							print(id, title)
 				elif currentSection == 'environment':
 					if line == 'Issue/Error':
 						currentSection = 'issue'
@@ -67,7 +71,7 @@ for articlePath in kbArticlePaths:
 					else:
 						m = regIssue.match(line)
 						if m:
-							issue.append(m.group(1))
+							issues.append(m.group(1))
 				elif currentSection == 'cause':
 					if line == 'Resolution/Workaround':
 						currentSection = 'resolution'
@@ -75,7 +79,7 @@ for articlePath in kbArticlePaths:
 					else:
 						m = regCause.match(line)
 						if m:
-							cause.append(m.group(1))
+							causes.append(m.group(1))
 				elif currentSection == 'resolution':
 					m = regResolution.match(line)
 					if m:
@@ -83,5 +87,7 @@ for articlePath in kbArticlePaths:
 						text = m.group(2)
 						resolution.append([text, level])
 
+	kbArticle = {'title':title, 'environment':environment, 'issues':issues, 'causes':causes, 'resolution':resolution}
 
-
+	# Add KB article to dictionary
+	kbDict[id] = kbArticle
