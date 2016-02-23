@@ -14,7 +14,8 @@ kbArticleID = -1
 # Classifiers
 ####################################
 # TODO: Put class in different file or pickle.
-# Class is requiredd to load 'myYesNoAnswerClassificationObject', and instance of featureClassificationObject
+# Class is requiredd to load 'myYesNoAnswerClassificationObject' and 'myGreetingClassificationObject' -
+#  instances of featureClassificationObject
 class featureClassificationObject:
     def __init__(self, word_features, classifier):
         self.word_features = word_features
@@ -30,7 +31,9 @@ class featureClassificationObject:
 # myYesNoAnswerClassificationObject: contains the word_features, trained NB classifier, and 'find_features([])' func
 classificationObjectInstanceFile = open('picklejar/myYesNoAnswerClassificationObject.pickle', 'rb')
 myYesNoAnswerClassificationObject = pickle.load(classificationObjectInstanceFile)
-
+classificationObjectInstanceFile.close();
+classificationObjectInstanceFile = open('picklejar/myGreetingClassificationObject.pickle', 'rb')
+myGreetingClassificationObject = pickle.load(classificationObjectInstanceFile)
 
 
 # CONSTANTS
@@ -112,6 +115,10 @@ def determineIssue(isFirstIssue):
 	else:
 		tellUser("What else can I assist you with?")
 	userInput = tellBot() # Get user input
+	# If user input is a greeting such as "Hi :)", wait for another input
+	if isGreeting(userInput) and isFirstIssue:
+		userInput = tellBot()
+
 	keywords = parseInput(userInput) # parse keywords from user input
 	
 	matched_keywords = [(keyword, kbKeywordDict.get(keyword)) for keyword in keywords if keyword in kbKeywordDict]
@@ -161,6 +168,12 @@ def yesNoQuestion(question):
 	parsed_input = parseInput(userInput)
 	feature_set = myYesNoAnswerClassificationObject.find_features(parsed_input)
 	return(myYesNoAnswerClassificationObject.classifier.classify(feature_set))
+
+def isGreeting(userInput):
+	parsed_input = parseInput(userInput)
+	feature_set = myGreetingClassificationObject.find_features(parsed_input)
+	return (True if myGreetingClassificationObject.classifier.classify(feature_set) == 'Greeting' else False)
+
 
 # END OF DOCUMENT
 # Load all functions, then run the main function (removes need for forward declarations,
