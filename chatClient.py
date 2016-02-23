@@ -1,5 +1,6 @@
 #!python3
 import os
+import sys
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords, nps_chat
@@ -7,6 +8,10 @@ from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
 import random
 import pickle
+import time
+
+# SETTINGS
+slowResponse = True # Adds a delays before bot responds
 
 kbArticleID = -1
 
@@ -39,6 +44,7 @@ myGreetingClassificationObject = pickle.load(classificationObjectInstanceFile)
 # CONSTANTS
 BOTNAME = "Alice (TSR)"
 DEFAULT_USERNAME = "User"
+NAME_COLUMN_WIDTH = 20
 
 # User data
 username = ''
@@ -87,6 +93,7 @@ def main():
 	kbArticle = None
 	isFirstIssue = True
 
+	i = "\nHello"
 	while not allIssuesResolved:
 		kwArticlePair = determineIssue(isFirstIssue) #Gets Key
 		if kwArticlePair:
@@ -117,6 +124,7 @@ def determineIssue(isFirstIssue):
 	userInput = tellBot() # Get user input
 	# If user input is a greeting such as "Hi :)", wait for another input
 	if isGreeting(userInput) and isFirstIssue:
+		tellUser("Hi :)")
 		userInput = tellBot()
 
 	keywords = parseInput(userInput) # parse keywords from user input
@@ -135,10 +143,20 @@ def determineIssue(isFirstIssue):
 
 
 def tellUser(response):
-	print(BOTNAME + ":", response)
+	# Using sys.stdout.write in order to update the text that has already been printed out in the console.
+	# This can be used for a multi-threaded implementation of the app.
+	# TODO: Test on linux/OSX.
+	# curses module would be a better option; however, it doesn't support Windows.
+
+	sys.stdout.write("\r%20s" % username + ": ") #display the user input line in the console.
+	if slowResponse == True:
+		time.sleep(2)
+	sys.stdout.write("\r%20s: %s\n" % (BOTNAME, response)) # Replace the "user input line" with the bots' response
+
+	# print(BOTNAME + ":", response)
 
 def tellBot():
-	return input(username + ": ")
+	return input("%20s: "%(username))
 
 def clearScreen():
 	''' Function to clear current screen based on current OS '''
