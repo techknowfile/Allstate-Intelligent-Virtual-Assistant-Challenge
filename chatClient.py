@@ -2,11 +2,36 @@
 import os
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, nps_chat
 from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
+import random
+import pickle
 
 kbArticleID = -1
+
+####################################
+# Classifiers
+####################################
+# TODO: Put class in different file or pickle.
+# Class is requiredd to load 'myYesNoAnswerClassificationObject', and instance of featureClassificationObject
+class featureClassificationObject:
+    def __init__(self, word_features, classifier):
+        self.word_features = word_features
+        self.classifier = classifier
+    def find_features(self, post):
+        words = set(post)
+        features = {}
+        for w in self.word_features:
+            if len(w) > 1:
+                features[w] = (w in words)
+        return features
+# Load yesNoAnswerClassification instance
+# myYesNoAnswerClassificationObject: contains the word_features, trained NB classifier, and 'find_features([])' func
+classificationObjectInstanceFile = open('picklejar/myYesNoAnswerClassificationObject.pickle', 'rb')
+myYesNoAnswerClassificationObject = pickle.load(classificationObjectInstanceFile)
+
+
 
 # CONSTANTS
 BOTNAME = "Alice (TSR)"
@@ -52,31 +77,40 @@ kbLibrary = {'KB0083060':kb1, 'KB00206580':kb2}
 ##############################################
 def main():
 	''' TODO: Docstring'''
-	issueResolved = False
+
+	allIssuesResolved = False
 	clearScreen();
 	getUsername();
 	kbArticle = None
+	isFirstIssue = True
 
-	while not issueResolved:
-		kwArticlePair = determineIssue() #Gets Key
+	while not allIssuesResolved:
+		kwArticlePair = determineIssue(isFirstIssue) #Gets Key
 		if kwArticlePair:
 			# get the Article from the Knowledge Base Library
 			kbArticle = kbLibrary.get(kwArticlePair[1])
 			for step in kbArticle.resolution:
 				tellUser(step)
 
+		# Check if user says no, yes, or gives another problem
+		needsMoreHelp = yesNoQuestion('Is there anything else I can help you with today?')
+		if needsMoreHelp == 'Yes':
+			allIssuesResolved = False
 
-			# issue resolved
-			tellUser("Is there anything else I can help you with today?")
+			# TODO: Should add something that determines if they gave the next issue immediately instead of just giving a 'yes' answer
+		else:
+			allIssuesResolved = True
+		isFirstIssue = False # Set flag to false so that different prompt is provided by bot for next issue
 
-			# Check if user says no, yes, or gives another problem
-
-			# If no, give final statement and end chat
+	tellUser("I'm glad I could help. Have a great day!")
 
 	
 
-def determineIssue():
-	tellUser("Hello, {}! How can I help you today? ".format(username))
+def determineIssue(isFirstIssue):
+	if isFirstIssue:
+		tellUser("Hello, {}! How can I help you today? ".format(username))
+	else:
+		tellUser("What else can I assist you with?")
 	userInput = tellBot() # Get user input
 	keywords = parseInput(userInput) # parse keywords from user input
 	
@@ -107,8 +141,10 @@ def parseInput(userInput):
 	# Tokenize user input into a list of words.
 	words = word_tokenize(userInput)
 	# Remove stop words and words less than 2 characters long, then LEMMATIZE input
-	#words = [lemmatizer.lemmatize(w) for w in words if not w in stop_words and len(w) > 1] 
-	return words
+	# words = [lemmatizer.lemmatize(w) for w in words if not w in stop_words and len(w) > 1] 
+
+	parsed_input = [w.lower() for w in words if w not in stop_words and len(w) > 1]
+	return parsed_input
 
 def getUsername():
 	global username
@@ -119,6 +155,19 @@ To get started, simply enter your name: ''')
 		username = DEFAULT_USERNAME
 	clearScreen();
 
+def getYesNoAnswerClassifier():
+	'''Loads pickled classifier for classifying if a feature set (user input) was a \'yes\' response or \'no\' response.'''
+	f = open('picklejar/yesNoAnswerClassifier.pickle', 'rb')
+	yesNoAnswerClassifier = pickle.load(f)
+	f.close()
+	return yesNoAnswerClassifier
+
+def yesNoQuestion(question):
+	tellUser(question)
+	userInput = tellBot()
+	parsed_input = parseInput(userInput)
+	feature_set = myYesNoAnswerClassificationObject.find_features(parsed_input)
+	return(myYesNoAnswerClassificationObject.classifier.classify(feature_set))
 
 # END OF DOCUMENT
 # Load all functions, then run the main function (removes need for forward declarations,
