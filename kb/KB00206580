@@ -1,0 +1,19 @@
+KB00206580: change billing address
+
+Environment
+Customer MyAccount Web Application
+
+Issue/Error
+- Customer requests a change to their billing address.
+
+Cause
+- Customer requests a change to their billing address, but their mailing address remains the same.
+- Customer needs to change both their billing address and mailing address.
+
+Resolution/Workaround
+1. Verify the customer’s current billing address
+2. Verify the customer’s current mailing address
+3. Verify that the customer is requesting a change to their billing address only or also their mailing address
+4. Update their billing address
+5. If the customer would like to update their mailing address as well, update their mailing address
+6. Confirm the customer’s new billing address and, if applicable, their mailing address after the change

@@ -1,0 +1,22 @@
+KB0083060: email access
+
+Environment
+Employee email system
+Agent email system
+
+Issue/Error
+- User is not able to login to email system via MS Outlook from a company issued computer or mobile device.
+- User is not able to login to web-email from a web browser from a company issued computer, 
+personal computer or mobile device.
+
+Cause
+- User entered incorrect ID and Password.
+- User entered incorrect ID and Password due to upper case or lower case setting on the keyboard.
+- User email account is locked after three consecutive failed login attempts.
+- User recently changed password, but did not update their mobile device. This could cause failed login attempts.
+
+Resolution/Workaround
+1. Resolve the incident by unlocking the email account.
+2. Verify with the user that their issue has been resolved.
+3. Help the user understand and correct the root cause if necessary.
+   a. If the user has a mobile device connected to their work email, verify that the user has updated the password on their mobile device as well, since that may be the root cause of the account becoming locked.
