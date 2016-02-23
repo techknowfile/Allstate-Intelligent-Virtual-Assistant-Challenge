@@ -1,3 +1,12 @@
+#######################################################
+# Author: Andy Dudley
+# 
+#
+#
+#
+#
+
+
 import nltk
 import random
 from nltk.corpus import nps_chat

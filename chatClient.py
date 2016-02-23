@@ -155,13 +155,6 @@ To get started, simply enter your name: ''')
 		username = DEFAULT_USERNAME
 	clearScreen();
 
-def getYesNoAnswerClassifier():
-	'''Loads pickled classifier for classifying if a feature set (user input) was a \'yes\' response or \'no\' response.'''
-	f = open('picklejar/yesNoAnswerClassifier.pickle', 'rb')
-	yesNoAnswerClassifier = pickle.load(f)
-	f.close()
-	return yesNoAnswerClassifier
-
 def yesNoQuestion(question):
 	tellUser(question)
 	userInput = tellBot()
