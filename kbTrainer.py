@@ -5,14 +5,28 @@ import re
 import nltk
 import string
 
-from sklearn.feature_extraction.text import TfidVectorizer
+#from sklearn.feature_extraction.text import TfidVectorizer
 from nltk.stem.porter import PorterStemmer
+
+from nltk.tokenize import word_tokenize
+from nltk.corpus import wordnet
+import verb
 
 #stemmer object used to stem the tokens
 stemmer = PorterStemmer()
 
 #add global variable of token dictionary for tf-idf matrix reference
 token_tfidf = {}
+
+def main():
+	# Get dictionary of KB dictionary files
+	kbDict = getKBDict()
+	for key, value in kbDict.items():
+		print(key, value['title'])
+
+	for key, value in kbDict.items():
+		processResolution(kbDict[key]['resolution'])
+
 
 #function takes the tokens and applies PorterStemmer
 def stemTokens(tokens, stemFunction):
@@ -32,7 +46,7 @@ def applyTFIDF(kbDocuments, focus):
 	#For each KB Document take the dictionary from the KB
 	for documentTitle, dictionary in kbDocuments.items():
 		#For each string in its current focus i.e, (environment, issues, causes)
-		#TODO: Must account for title, resolution cases
+		#TODO: Must account for title, resolution cases 
 		for strings in dictionary[focus]:
 			#Preprocessing text by making them lower and remove punctuation
 			text = strings.lower()
@@ -43,13 +57,7 @@ def applyTFIDF(kbDocuments, focus):
 	#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
 	tfidf = TfidVectorizer(tokenizer=tokenize , stop_words='english')
 	tfs = tfidf.fit_transform(token_tfidf.values())
-
-
-def main():
-	# Get dictionary of KB dictionary files
-	kbDict = getKBDict()
-	for key, value in kbDict.items():
-		print(key, value['title'])
+	print(tfs)
 
 def getKBDict():
 	''' Parses each KB text file in 'kb' directory into a
@@ -111,6 +119,7 @@ def getKBDict():
 		with open(articlePath, encoding = 'utf-8') as f:
 			# parse articleText
 			for line in f:
+				line = line.replace(u"’", u"'")
 				line = line.encode('ascii', 'ignore').decode('ascii').rstrip('\n')
 				if regBlankLine.match(line):
 					continue
@@ -161,6 +170,88 @@ def getKBDict():
 		kbDict[id] = kbArticle
 
 	return kbDict
+
+def processResolution(steps):
+	for step, level in steps:
+		words = word_tokenize(step)
+		tagged_words = nltk.pos_tag(words)
+
+		statement = []
+		modStep = None
+
+		# 'Convert 'resolve' step to first person
+		if tagged_words[0][0] == "Resolve":
+			verb_index = None
+			statement = ['I', 'have', ]
+			for i, tagged_word in enumerate(tagged_words):
+				word = tagged_word[0]
+				tag = tagged_word[1]
+				if tag == 'VBG':
+					verb_index = i
+					break;
+			if verb_index:
+				verb_past = getPastParticiple(words[verb_index])
+				statement.append(verb_past)
+				statement.extend(words[verb_index+1:-1])
+				statement.extend(['for', 'you'])
+			modStep = ' '.join(statement) + '.'
+		# Convert 'Verify' step into proper form
+		elif tagged_words[0][0] == "Verify":
+			statement = []
+			#######################################################################################
+			# Determine whether to ask Yes/No question or to ask for specific piece of information
+			######################################################################################
+			questionType = ''
+			if 'or' in words:
+				questionType = 'OPTION'
+			else:
+				for word, tag in tagged_words[1:]:
+					# TODO: contains 'or'
+					# Yes/No - Look for past participles or gerunds (is it 'working', issue has 'been' 'resolved')
+					
+					if tag in ('VB', 'VBD', 'VBG', 'VBN'):
+						questionType = 'YN'
+						break;
+
+			if questionType == 'YN':
+				possessive_index = None
+				nouns = []
+				verbs = []
+
+				# Find start of useful info in step
+				# TODO: Refactor this for loop into a function that returns the possessive index
+				for i, tagged_word in enumerate(tagged_words):
+					word = tagged_word[0]
+					tag = tagged_word[1]
+					if tag in ('POS', 'PRP$'): # possessive ending and possessive pronoun POS tags
+						possessive_index = i
+				# Find the subject (noun) and verbs
+				for i, tagged_word in enumerate(tagged_words[possessive_index+1:]): # Scan through everything after the possessive noun, which is assumed to be "user's", "customer's", "their", or similar
+					word = tagged_word[0]
+					tag = tagged_word[1]
+					if tag in ('NN', 'NNS'): # noun and plural noun
+						nouns.append(word)
+					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ'):
+						verbs.append(word)
+
+
+				if (possessive_index):
+					statement.extend(['Please', 'verify', 'that', 'your'])
+					statement.append(' and '.join(nouns))
+					statement.extend(verbs)
+
+				modStep = ' '.join(statement) + '.'
+
+		if modStep:
+			print(modStep)
+
+
+
+
+def getPastParticiple(vbg):
+	vbn = verb.verb_past(vbg)
+	return vbn
+
 
 if __name__=="__main__":
    main()
