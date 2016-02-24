@@ -8,21 +8,42 @@ import string
 from sklearn.feature_extraction.text import TfidVectorizer
 from nltk.stem.porter import PorterStemmer
 
-'stemmer object used to stem the tokens'
+#stemmer object used to stem the tokens
 stemmer = PorterStemmer()
 
-'function takes the tokens and applies PorterStemmer'
+#add global variable of token dictionary for tf-idf matrix reference
+token_tfidf = {}
+
+#function takes the tokens and applies PorterStemmer
 def stemTokens(tokens, stemFunction):
 	stemmedTokens = []
 	for token in tokens:
 		stemmedTokens.append(stemFunction.stem(token))
 	return stemmedTokens
 
-'Takes the text and creates tokens'
+#Takes the text and creates tokens
 def tokenize(text):
-	tokens = nltk.word_tokenizer(text)
+	tokens = nltk.word_tokenize(text)
 	stems = stemTokens(tokens, stemmer)
 	return stems
+
+#Applying tf-idf
+def applyTFIDF(kbDocuments, focus):
+	#For each KB Document take the dictionary from the KB
+	for documentTitle, dictionary in kbDocuments.items():
+		#For each string in its current focus i.e, (environment, issues, causes)
+		#TODO: Must account for title, resolution cases
+		for strings in dictionary[focus]:
+			#Preprocessing text by making them lower and remove punctuation
+			text = strings.lower()
+			no_punctuation = lowers.translate(None, string.punctuation)
+			#Insert preprocessed text into token_tfidf dictionary
+			token_tfidf[documentTitle] = no_punctuation
+
+	#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
+	tfidf = TfidVectorizer(tokenizer=tokenize , stop_words='english')
+	tfs = tfidf.fit_transform(token_tfidf.values())
+
 
 def main():
 	# Get dictionary of KB dictionary files
