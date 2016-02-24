@@ -2,6 +2,27 @@
 import os
 import glob
 import re
+import nltk
+import string
+
+from sklearn.feature_extraction.text import TfidVectorizer
+from nltk.stem.porter import PorterStemmer
+
+'stemmer object used to stem the tokens'
+stemmer = PorterStemmer()
+
+'function takes the tokens and applies PorterStemmer'
+def stemTokens(tokens, stemFunction):
+	stemmedTokens = []
+	for token in tokens:
+		stemmedTokens.append(stemFunction.stem(token))
+	return stemmedTokens
+
+'Takes the text and creates tokens'
+def tokenize(text):
+	tokens = nltk.word_tokenizer(text)
+	stems = stemTokens(tokens, stemmer)
+	return stems
 
 def main():
 	# Get dictionary of KB dictionary files
@@ -10,19 +31,19 @@ def main():
 		print(key, value['title'])
 
 def getKBDict():
-	''' Parses each KB text file in 'kb' directory into a 
+	''' Parses each KB text file in 'kb' directory into a
 	dictionary with keys and values for each section of the article.
-	Returns a dictionary of these kb dictionaries with 
-	key values = the KB id of each article. 
+	Returns a dictionary of these kb dictionaries with
+	key values = the KB id of each article.
 	Ex: {'KB012345':{
-				 'title':[...], 
+				 'title':[...],
 				 'environment':[...]
 				 'issues':[...]
 				 'causes':[...]
 				 'resolution':[['...', 0], ['...', 0], ['...', 1]]'
 			},
 		 'KB022222':{
-				 'title':[...], 
+				 'title':[...],
 				 'environment':[...]
 				 'issues':[...]
 				 'causes':[...]
