@@ -9,6 +9,7 @@ from nltk.stem import WordNetLemmatizer
 import random
 import pickle
 import time
+import textwrap
 
 # SETTINGS
 slowResponse = True # Adds a delays before bot responds
@@ -151,7 +152,7 @@ def tellUser(response):
 	sys.stdout.write("\r%20s" % username + ": ") #display the user input line in the console.
 	if slowResponse == True:
 		time.sleep(2)
-	sys.stdout.write("\r%20s: %s\n" % (BOTNAME, response)) # Replace the "user input line" with the bots' response
+	sys.stdout.write("\r" + textwrap.fill("{:>20}: {:<60}\n".format(BOTNAME, response), 70, subsequent_indent="                      ") + "\n") # Replace the "user input line" with the bots' response
 
 	# print(BOTNAME + ":", response)
 
