@@ -5,7 +5,7 @@ import re
 import nltk
 import string
 
-#from sklearn.feature_extraction.text import TfidVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem.porter import PorterStemmer
 
 from nltk.tokenize import word_tokenize
@@ -51,9 +51,10 @@ def applyTFIDF(kbDocuments, focus):
 		for strings in dictionary[focus]:
 			#Preprocessing text by making them lower and remove punctuation
 			text = strings.lower()
-			no_punctuation = lowers.translate(None, string.punctuation)
+			# TODO: Remove punctuation. Line below doesn't work in Python 3
+			#no_punctuation = lowers.translate(None, string.punctuation)
 			#Insert preprocessed text into token_tfidf dictionary
-			token_tfidf[documentTitle] = no_punctuation
+			token_tfidf[documentTitle] = text
 
 	#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
 	tfidf = TfidVectorizer(tokenizer=tokenize , stop_words='english')

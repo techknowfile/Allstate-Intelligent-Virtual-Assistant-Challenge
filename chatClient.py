@@ -41,9 +41,8 @@ classificationObjectInstanceFile.close();
 classificationObjectInstanceFile = open('picklejar/myGreetingClassificationObject.pickle', 'rb')
 myGreetingClassificationObject = pickle.load(classificationObjectInstanceFile)
 
-
 # CONSTANTS
-BOTNAME = "Alice (TSR)"
+BOTNAME = "Red Queen (TSR)"
 DEFAULT_USERNAME = "User"
 NAME_COLUMN_WIDTH = 20
 
@@ -60,27 +59,68 @@ stop_words.remove('no')
 #################################################
 # STUBS | Test data | Test Classes | Test Objects
 #################################################
-class KBArticle:
-	def __init__(self, resolution):
-		self.resolution = resolution; # Tuple of resolution steps
+###################################################
+# SECTION START:
+#
+# This section has been deprecated. Now using Brain
+# stub.
+####################################################
+# class KBArticle:
+# 	def __init__(self, resolution):
+# 		self.resolution = resolution; # Tuple of resolution steps
 
-kbKeywordDict = {'address':(9, 'KB00206580'), 'login':(7, 'KB0083060')}
+# kbKeywordDict = {'address':(9, 'KB00206580'), 'login':(7, 'KB0083060')}
 
-kb1 = KBArticle(('Resolve the incident by unlocking the email account.',
-'Verify with the user that their issue has been resolved.',
-'''Help the user understand and correct the root cause if necessary.
-   a. If the user has a mobile device connected to their work email, verify that the user has updated the password on their mobile device as well, since that may be the root cause of the account becoming locked.'''
-   ))
+# kb1 = KBArticle(('Resolve the incident by unlocking the email account.',
+# 'Verify with the user that their issue has been resolved.',
+# '''Help the user understand and correct the root cause if necessary.
+#    a. If the user has a mobile device connected to their work email, verify that the user has updated the password on their mobile device as well, since that may be the root cause of the account becoming locked.'''
+#    ))
 
-kb2 = KBArticle(('Verify the customer\'s current billing address',
-				'Verify the customer\'s current mailing address',
-				'Verify that the customer is requesting a change to their billing address only or also their mailing address',
-				'Update their billing address',
-				'If the customer would like to update their mailing address as well, update their mailing address',
-				'Confirm the customer\'s new billing address and, if applicable, their mailing address after the change'
-))
+# kb2 = KBArticle(('Verify the customer\'s current billing address',
+# 				'Verify the customer\'s current mailing address',
+# 				'Verify that the customer is requesting a change to their billing address only or also their mailing address',
+# 				'Update their billing address',
+# 				'If the customer would like to update their mailing address as well, update their mailing address',
+# 				'Confirm the customer\'s new billing address and, if applicable, their mailing address after the change'
+# ))
 
-kbLibrary = {'KB0083060':kb1, 'KB00206580':kb2}
+# kbLibrary = {'KB0083060':kb1, 'KB00206580':kb2}
+
+# ##################################################
+# # END
+# ##################################################
+
+###################################################
+## TEMP Class and instance ()
+# TODO: This should come pickled from the KB with TFIDF matrix and /cosine similarity function (getKBKey(user_input_features))
+class Brain:
+	def __init__(self, tfs, brainEntryLookupDict):
+		self.tfs = tfs
+		self.brainEntryLookupDict = brainEntryLookupDict
+	def getKBKey(self, feature_set):
+		return 'KB00206580'
+
+class BrainEntry:
+	def __init__(self, varDict, steps):
+		self.varDict = varDict
+		self.steps = steps
+
+myBrainEntry = BrainEntry(
+	{'billing_address':None, 'mailing_address':None, 'or_bool':None},
+	[
+		['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
+		['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
+		['Are you requesting to change your billing address only or also your mailing address?', 'or_bool'],
+		['What would you like your new billing address to be?', 'update_domain_knowledge', 'billing_address'],
+		['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address'],
+		['', 'confirm']
+	]
+	)
+myBrain = Brain(None, {'KB00206580':myBrainEntry})
+######################################################
+# STUBS: END
+######################################################
 
 ##############################################
 # Start of main code
@@ -89,19 +129,19 @@ def main():
 	''' TODO: Docstring'''
 
 	allIssuesResolved = False
+
 	clearScreen();
 	getUsername();
 	kbArticle = None
 	isFirstIssue = True
 
-	i = "\nHello"
 	while not allIssuesResolved:
-		kwArticlePair = determineIssue(isFirstIssue) #Gets Key
-		if kwArticlePair:
+		kbKey = determineIssue(isFirstIssue) #Gets Key
+		if kbKey:
 			# get the Article from the Knowledge Base Library
-			kbArticle = kbLibrary.get(kwArticlePair[1])
-			for step in kbArticle.resolution:
-				tellUser(step)
+			currentBrainEntry = myBrain.brainEntryLookupDict.get(kbKey)
+			for step in currentBrainEntry.steps:
+				tellUser(step[0])
 
 		# Check if user says no, yes, or gives another problem
 		needsMoreHelp = yesNoQuestion('Is there anything else I can help you with today?')
@@ -130,14 +170,21 @@ def determineIssue(isFirstIssue):
 
 	keywords = parseInput(userInput) # parse keywords from user input
 	
-	matched_keywords = [(keyword, kbKeywordDict.get(keyword)) for keyword in keywords if keyword in kbKeywordDict]
-	matched_keywords = sorted(matched_keywords, key=lambda keyword: keyword[1][0], reverse=True)
+	kbKey = myBrain.getKBKey(keywords) # TODO: John, hook up with actual feature set needed to perform cosine similarity
+
+	# Deprecated from initial stub
+	# matched_keywords = [(keyword, kbKeywordDict.get(keyword)) for keyword in keywords if keyword in kbKeywordDict]
+	# matched_keywords = sorted(matched_keywords, key=lambda keyword: keyword[1][0], reverse=True)
 	
-	if matched_keywords:
+	if kbKey:
 		# keyword matched!
 		issueDetermined = True
-		# Returns only the highest rated match. Remove [0] to return all matched Keyword/KB article pairs
-		return matched_keywords[0][1]
+
+		# DEPRECATED: Returns only the highest rated match. Remove [0] to return all matched Keyword/KB article pairs
+		# return matched_keywords[0][1]
+
+		# Return the key to the KB article
+		return kbKey
 	
 	else:
 		tellUser("I'm sorry, I'm not able to assist with that issue.")
@@ -192,6 +239,9 @@ def isGreeting(userInput):
 	parsed_input = parseInput(userInput)
 	feature_set = myGreetingClassificationObject.find_features(parsed_input)
 	return (True if myGreetingClassificationObject.classifier.classify(feature_set) == 'Greeting' else False)
+
+
+
 
 
 # END OF DOCUMENT
