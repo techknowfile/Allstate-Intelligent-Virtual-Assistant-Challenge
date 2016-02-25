@@ -100,14 +100,29 @@ class Brain:
 		self.brainEntryLookupDict = brainEntryLookupDict
 	def getKBKey(self, feature_set):
 		return 'KB00206580'
+	def assistUser(self, brainEntry):
+		for step in brainEntry.steps:
+			if step[1] == 'add_domain_knowledge':
+				tellUser(step[0])
+				brainEntry.domainKnowledgeDict[step[2]].append(tellBot())
+			if step[1] == 'confirm':
+				for key, value in brainEntry.domainKnowledgeDict.items():
+					if len(value) == 1:
+						tellUser("Your {} has been updated to {}".format(key, value[0]))
+					elif len(value) == 2:
+						tellUser("Your {} has been updated from {} to {}".format(key, value[0], value[1]))
 
+
+		
 class BrainEntry:
-	def __init__(self, varDict, steps):
-		self.varDict = varDict
+	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
+		self.domainKnowledgeDict = domainKnowledgeDict
 		self.steps = steps
 
+
 myBrainEntry = BrainEntry(
-	{'billing_address':None, 'mailing_address':None, 'or_bool':None},
+	{'billing_address':[], 'mailing_address':[]},
+	{'or_bool':None},
 	[
 		['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
 		['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
@@ -140,8 +155,7 @@ def main():
 		if kbKey:
 			# get the Article from the Knowledge Base Library
 			currentBrainEntry = myBrain.brainEntryLookupDict.get(kbKey)
-			for step in currentBrainEntry.steps:
-				tellUser(step[0])
+			myBrain.assistUser(currentBrainEntry)
 
 		# Check if user says no, yes, or gives another problem
 		needsMoreHelp = yesNoQuestion('Is there anything else I can help you with today?')
