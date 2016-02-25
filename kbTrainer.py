@@ -25,7 +25,8 @@ def main():
 		print(key, value['title'])
 
 	for key, value in kbDict.items():
-		processResolution(kbDict[key]['resolution'])
+		kbDict[key]['resolution'] = processResolution(kbDict[key]['resolution'])
+		print(kbDict[key]['resolution'])
 
 
 #function takes the tokens and applies PorterStemmer
@@ -172,6 +173,7 @@ def getKBDict():
 	return kbDict
 
 def processResolution(steps):
+	modSteps = []
 	for step, level in steps:
 		words = word_tokenize(step)
 		tagged_words = nltk.pos_tag(words)
@@ -201,22 +203,23 @@ def processResolution(steps):
 			#######################################################################################
 			# Determine whether to ask Yes/No question or to ask for specific piece of information
 			######################################################################################
-			questionType = ''
-			if 'or' in words:
+			questionType = None
+			if 'or' in words: # Asking about one thing OR another (get input). Have to consider if word 'also' or synonym is found
 				questionType = 'OPTION'
 			else:
 				for word, tag in tagged_words[1:]:
-					# TODO: contains 'or'
 					# Yes/No - Look for past participles or gerunds (is it 'working', issue has 'been' 'resolved')
 					
 					if tag in ('VB', 'VBD', 'VBG', 'VBN'):
 						questionType = 'YN'
 						break;
+			if not questionType:
+				questionType = 'DOMAIN'
 
 			if questionType == 'YN':
 				possessive_index = None
 				nouns = []
-				verbs = []
+				verb_index = None
 
 				# Find start of useful info in step
 				# TODO: Refactor this for loop into a function that returns the possessive index
@@ -231,19 +234,23 @@ def processResolution(steps):
 					tag = tagged_word[1]
 					if tag in ('NN', 'NNS'): # noun and plural noun
 						nouns.append(word)
-					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ'):
-						verbs.append(word)
+					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ') and not verb_index:
+						verb_index = i
 
 
 				if (possessive_index):
 					statement.extend(['Please', 'verify', 'that', 'your'])
 					statement.append(' and '.join(nouns))
-					statement.extend(verbs)
+					statement.extend(words[possessive_index+1+verb_index:-1])
 
 				modStep = ' '.join(statement) + '.'
 
 		if modStep:
-			print(modStep)
+			print(">>", modStep)
+			modSteps.append(modStep)
+		else: 
+			modSteps.append(step)
+	return modSteps
 
 
 
