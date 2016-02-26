@@ -16,9 +16,14 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
 # from brain import Brain, BrainEntry
 
-####################################
-#            HER BRAIN
-####################################
+###################################################################################################
+#                                         CLASS DEFINITIONS
+###################################################################################################
+# TODO: These two classes currently must be copied/pasted across to kbTrainer (or vice-verse)
+#       when a change is made to the class... because I suck at pickling. And if I use a
+#       separate class file the brain isn't able to access the functions in this chatClient class
+#       (trying to import chatClient functions into a brain.py class breaks everything)
+###################################################################################################
 
 class Brain:
 	def __init__(self, kbWordsDict, brainEntryDict):
