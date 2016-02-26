@@ -97,7 +97,7 @@ def main():
 		kbDict[key]['resolution'] = processResolution(kbDict[key]['resolution'])
 		print(kbDict[key]['resolution'])
 
-	kbWordsDict = getKBWordsDict(kbDict, 'issues')
+	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues', 'causes'])
 
 	#STUB
 	myBrainEntry = BrainEntry(
@@ -118,16 +118,20 @@ def main():
 	pickle.dump(myBrain, brain_file)
 	brain_file.close()
 
-def getKBWordsDict(kbDocuments, focus):
+def getKBWordsDict(kbDocuments, focusList):
 	kbWordsDict = OrderedDict()
 	#For each KB Document take the dictionary from the KB
 	for documentTitle, dictionary in kbDocuments.items():
 		#For each string in its current focus i.e, (environment, issues, causes)
 		#TODO: Must account for title, resolution cases 
-		for string in dictionary[focus]:
-			text = preprocessString(string)
-			#Insert preprocessed text into token_tfidf dictionary
-			kbWordsDict[documentTitle] = text
+		for focus in focusList:
+			for string in dictionary[focus]:
+				text = preprocessString(string)
+				#Insert preprocessed text into token_tfidf dictionary
+				if documentTitle in kbWordsDict:
+					kbWordsDict[documentTitle] += ' ' + text
+				else: 
+					kbWordsDict[documentTitle] = text
 	return kbWordsDict
 
 def preprocessString(string):

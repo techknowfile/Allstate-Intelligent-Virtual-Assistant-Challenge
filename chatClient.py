@@ -21,7 +21,7 @@ slowResponse = False # Adds a delays before bot responds
 kbArticleID = -1
 
 ###################################################################################################
-# Class definitions
+#                                         CLASS DEFINITIONS
 ###################################################################################################
 # TODO: These two classes currently must be copied/pasted across to kbTrainer (or vice-verse)
 #       when a change is made to the class... because I suck at pickling. And if I use a
@@ -57,10 +57,11 @@ class Brain:
 		tfidf = vectorizer.fit_transform(self.kbWordsDict.values())
 		cosine_similarities = linear_kernel(tfidf[len(self.kbWordsDict)-1], tfidf).flatten()
 		match = cosine_similarities.argsort()[:-3:-1]
-		print(cosine_similarities)
-		kbKey = list(self.kbWordsDict.keys())[match[1]]
-		print(kbKey)
-		return kbKey
+		score = cosine_similarities[match[1]]
+		if score > 0:
+			kbKey = list(self.kbWordsDict.keys())[match[1]]
+			print(kbKey)
+			return kbKey
 
 	def assistUser(self, brainEntry):
 		for step in brainEntry.steps:
@@ -175,8 +176,13 @@ def main():
 	while not allIssuesResolved:
 		kbKey = determineIssue(isFirstIssue) #Gets Key
 		if kbKey:
+			tellUser('I\'d be happy to help you with that ^_^')
 			# get the Article from the Knowledge Base Library
 			currentBrainEntry = brain.brainEntryDict.get(kbKey)
+
+			################################################
+			#**************    RESOLUTION    ***************
+			################################################
 			brain.assistUser(currentBrainEntry)
 
 		# Check if user says no, yes, or gives another problem
