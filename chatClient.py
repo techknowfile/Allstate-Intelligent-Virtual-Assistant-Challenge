@@ -6,15 +6,92 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords, nps_chat
 from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
+from nltk.stem.porter import PorterStemmer
+
 import random
 import pickle
 import time
 import textwrap
 
 # SETTINGS
-slowResponse = True # Adds a delays before bot responds
+slowResponse = False # Adds a delays before bot responds
 
 kbArticleID = -1
+
+####################################
+#            HER BRAIN
+####################################
+####################################
+# TODO: These two classes currently must be copied/pasted across to kbTrainer (or vice-verse)
+#       when a change is made to the class... because I suck at pickling. And if I use a
+#       separate class file the brain isn't able to access the functions in this chatClient class
+#       (trying to import chatClient functions into a brain.py class breaks everything)
+#####################################
+
+class Brain:
+	def __init__(self, kbWordsDict, brainEntryDict):
+		self.kbWordsDict = kbWordsDict
+		self.brainEntryDict = brainEntryDict
+
+	#function takes the tokens and applies PorterStemmer
+	def stemTokens(self, tokens):
+		#stemmer object used to stem the tokens
+		stemmer = PorterStemmer()
+		stemmedTokens = []
+		for token in tokens:
+			stemmedTokens.append(stemmer.stem(token))
+		return stemmedTokens
+
+	#Takes the text and creates tokens
+	def tokenize(self, text):
+		tokens = nltk.word_tokenize(text)
+		stems = self.stemTokens(tokens)
+		return stems
+
+	def getKBKey(self, userInput):
+		self.kbWordsDict['input'] = userInput
+
+		#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
+		vectorizer = TfidfVectorizer(tokenizer=self.tokenize , stop_words='english', use_idf=True, ngram_range=(1, 3))
+		tfidf = vectorizer.fit_transform(self.kbWordsDict.values())
+		cosine_similarities = linear_kernel(tfidf[len(self.kbWordsDict)-1], tfidf).flatten()
+		match = cosine_similarities.argsort()[:-3:-1]
+		print(cosine_similarities)
+		kbKey = list(self.kbWordsDict.keys())[match[1]]
+		print(kbKey)
+		return kbKey
+
+	def assistUser(self, brainEntry):
+		for step in brainEntry.steps:
+			if step[1] == 'add_domain_knowledge':
+				tellUser(step[0]) # Ask user for domain knowledge
+				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+			if step[1] == 'confirm':
+				for key, value in brainEntry.domainKnowledgeDict.items():
+					if len(value) == 1:
+						tellUser("Your {} has been updated to {}".format(key, value[0]))
+					elif len(value) == 2:
+						tellUser("Your {} has been updated from {} to {}".format(key, value[0], value[1]))
+
+			if step[1] == 'update_domain_knowledge':
+				tellUser(step[0]) # Ask user for domain knowledge
+				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+			if step[1] == 'conditional_update_domain_knowledge':
+				# Check to see that the boolean flag has been set to True. If so, run conditional step...
+				if boolKnowledgeDict.get('or_bool') == True:
+					tellUser(step[0]) # Ask user for domain knowledge
+					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+
+class BrainEntry:
+	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
+		self.domainKnowledgeDict = domainKnowledgeDict
+		self.boolKnowledgeDict = boolKnowledgeDict
+		self.steps = steps
 
 ####################################
 # Classifiers
@@ -33,6 +110,13 @@ class featureClassificationObject:
             if len(w) > 1:
                 features[w] = (w in words)
         return features
+
+###############################
+brain_file = open('picklejar/brain.pickle', 'rb')
+brain = pickle.load(brain_file)
+brain_file.close()
+
+
 # Load yesNoAnswerClassification instance
 # myYesNoAnswerClassificationObject: contains the word_features, trained NB classifier, and 'find_features([])' func
 classificationObjectInstanceFile = open('picklejar/myYesNoAnswerClassificationObject.pickle', 'rb')
@@ -40,7 +124,7 @@ myYesNoAnswerClassificationObject = pickle.load(classificationObjectInstanceFile
 classificationObjectInstanceFile.close();
 classificationObjectInstanceFile = open('picklejar/myGreetingClassificationObject.pickle', 'rb')
 myGreetingClassificationObject = pickle.load(classificationObjectInstanceFile)
-
+classificationObjectInstanceFile.close();
 # CONSTANTS
 BOTNAME = "Red Queen (TSR)"
 DEFAULT_USERNAME = "User"
@@ -91,48 +175,6 @@ stop_words.remove('no')
 # # END
 # ##################################################
 
-###################################################
-## TEMP Class and instance ()
-# TODO: This should come pickled from the KB with TFIDF matrix and /cosine similarity function (getKBKey(user_input_features))
-class Brain:
-	def __init__(self, tfs, brainEntryLookupDict):
-		self.tfs = tfs
-		self.brainEntryLookupDict = brainEntryLookupDict
-	def getKBKey(self, feature_set):
-		return 'KB00206580'
-	def assistUser(self, brainEntry):
-		for step in brainEntry.steps:
-			if step[1] == 'add_domain_knowledge':
-				tellUser(step[0])
-				brainEntry.domainKnowledgeDict[step[2]].append(tellBot())
-			if step[1] == 'confirm':
-				for key, value in brainEntry.domainKnowledgeDict.items():
-					if len(value) == 1:
-						tellUser("Your {} has been updated to {}".format(key, value[0]))
-					elif len(value) == 2:
-						tellUser("Your {} has been updated from {} to {}".format(key, value[0], value[1]))
-
-
-		
-class BrainEntry:
-	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
-		self.domainKnowledgeDict = domainKnowledgeDict
-		self.steps = steps
-
-
-myBrainEntry = BrainEntry(
-	{'billing_address':[], 'mailing_address':[]},
-	{'or_bool':None},
-	[
-		['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
-		['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
-		['Are you requesting to change your billing address only or also your mailing address?', 'or_bool'],
-		['What would you like your new billing address to be?', 'update_domain_knowledge', 'billing_address'],
-		['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address'],
-		['', 'confirm']
-	]
-	)
-myBrain = Brain(None, {'KB00206580':myBrainEntry})
 ######################################################
 # STUBS: END
 ######################################################
@@ -154,8 +196,8 @@ def main():
 		kbKey = determineIssue(isFirstIssue) #Gets Key
 		if kbKey:
 			# get the Article from the Knowledge Base Library
-			currentBrainEntry = myBrain.brainEntryLookupDict.get(kbKey)
-			myBrain.assistUser(currentBrainEntry)
+			currentBrainEntry = brain.brainEntryDict.get(kbKey)
+			brain.assistUser(currentBrainEntry)
 
 		# Check if user says no, yes, or gives another problem
 		needsMoreHelp = yesNoQuestion('Is there anything else I can help you with today?')
@@ -182,9 +224,9 @@ def determineIssue(isFirstIssue):
 		tellUser("Hi :)")
 		userInput = tellBot()
 
-	keywords = parseInput(userInput) # parse keywords from user input
+	# keywords = parseInput(userInput) # parse keywords from user input
 	
-	kbKey = myBrain.getKBKey(keywords) # TODO: John, hook up with actual feature set needed to perform cosine similarity
+	kbKey = brain.getKBKey(userInput) # TODO: John, hook up with actual feature set needed to perform cosine similarity
 
 	# Deprecated from initial stub
 	# matched_keywords = [(keyword, kbKeywordDict.get(keyword)) for keyword in keywords if keyword in kbKeywordDict]

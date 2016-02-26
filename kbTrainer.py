@@ -4,19 +4,88 @@ import glob
 import re
 import nltk
 import string
+import pickle
+import verb
+from collections import OrderedDict
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 from nltk.stem.porter import PorterStemmer
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
-import verb
+# from brain import Brain, BrainEntry
 
-#stemmer object used to stem the tokens
-stemmer = PorterStemmer()
+####################################
+#            HER BRAIN
+####################################
+
+class Brain:
+	def __init__(self, kbWordsDict, brainEntryDict):
+		self.kbWordsDict = kbWordsDict
+		self.brainEntryDict = brainEntryDict
+
+	#function takes the tokens and applies PorterStemmer
+	def stemTokens(self, tokens):
+		#stemmer object used to stem the tokens
+		stemmer = PorterStemmer()
+		stemmedTokens = []
+		for token in tokens:
+			stemmedTokens.append(stemmer.stem(token))
+		return stemmedTokens
+
+	#Takes the text and creates tokens
+	def tokenize(self, text):
+		tokens = nltk.word_tokenize(text)
+		stems = self.stemTokens(tokens)
+		return stems
+
+	def getKBKey(self, userInput):
+		self.kbWordsDict['input'] = userInput
+
+		#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
+		vectorizer = TfidfVectorizer(tokenizer=self.tokenize , stop_words='english', use_idf=True, ngram_range=(1, 3))
+		tfidf = vectorizer.fit_transform(self.kbWordsDict.values())
+		cosine_similarities = linear_kernel(tfidf[len(self.kbWordsDict)-1], tfidf).flatten()
+		match = cosine_similarities.argsort()[:-3:-1]
+		print(cosine_similarities)
+		kbKey = list(self.kbWordsDict.keys())[match[1]]
+		print(kbKey)
+		return kbKey
+
+	def assistUser(self, brainEntry):
+		for step in brainEntry.steps:
+			if step[1] == 'add_domain_knowledge':
+				tellUser(step[0]) # Ask user for domain knowledge
+				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+			if step[1] == 'confirm':
+				for key, value in brainEntry.domainKnowledgeDict.items():
+					if len(value) == 1:
+						tellUser("Your {} has been updated to {}".format(key, value[0]))
+					elif len(value) == 2:
+						tellUser("Your {} has been updated from {} to {}".format(key, value[0], value[1]))
+
+			if step[1] == 'update_domain_knowledge':
+				tellUser(step[0]) # Ask user for domain knowledge
+				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+			if step[1] == 'conditional_update_domain_knowledge':
+				# Check to see that the boolean flag has been set to True. If so, run conditional step...
+				if boolKnowledgeDict.get('or_bool') == True:
+					tellUser(step[0]) # Ask user for domain knowledge
+					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+
+
+class BrainEntry:
+	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
+		self.domainKnowledgeDict = domainKnowledgeDict
+		self.boolKnowledgeDict = boolKnowledgeDict
+		self.steps = steps
+
 
 #add global variable of token dictionary for tf-idf matrix reference
-token_tfidf = {}
+
 
 def main():
 	# Get dictionary of KB dictionary files
@@ -28,38 +97,45 @@ def main():
 		kbDict[key]['resolution'] = processResolution(kbDict[key]['resolution'])
 		print(kbDict[key]['resolution'])
 
+	kbWordsDict = getKBWordsDict(kbDict, 'issues')
 
-#function takes the tokens and applies PorterStemmer
-def stemTokens(tokens, stemFunction):
-	stemmedTokens = []
-	for token in tokens:
-		stemmedTokens.append(stemFunction.stem(token))
-	return stemmedTokens
+	#STUB
+	myBrainEntry = BrainEntry(
+	{'billing_address':[], 'mailing_address':[]},
+		{'or_bool':None},
+		[
+			['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
+			['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
+			['Are you requesting to change your billing address only or also your mailing address?', 'or_bool'],
+			['What would you like your new billing address to be?', 'update_domain_knowledge', 'billing_address'],
+			['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address'],
+			['', 'confirm']
+		]
+	)
+	myBrain = Brain(kbWordsDict, {'KB00206580':myBrainEntry})
 
-#Takes the text and creates tokens
-def tokenize(text):
-	tokens = nltk.word_tokenize(text)
-	stems = stemTokens(tokens, stemmer)
-	return stems
+	brain_file = open("picklejar/brain.pickle", "wb")
+	pickle.dump(myBrain, brain_file)
+	brain_file.close()
 
-#Applying tf-idf
-def applyTFIDF(kbDocuments, focus):
+def getKBWordsDict(kbDocuments, focus):
+	kbWordsDict = OrderedDict()
 	#For each KB Document take the dictionary from the KB
 	for documentTitle, dictionary in kbDocuments.items():
 		#For each string in its current focus i.e, (environment, issues, causes)
 		#TODO: Must account for title, resolution cases 
-		for strings in dictionary[focus]:
-			#Preprocessing text by making them lower and remove punctuation
-			text = strings.lower()
-			# TODO: Remove punctuation. Line below doesn't work in Python 3
-			#no_punctuation = lowers.translate(None, string.punctuation)
+		for string in dictionary[focus]:
+			text = preprocessString(string)
 			#Insert preprocessed text into token_tfidf dictionary
-			token_tfidf[documentTitle] = text
+			kbWordsDict[documentTitle] = text
+	return kbWordsDict
 
-	#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
-	tfidf = TfidVectorizer(tokenizer=tokenize , stop_words='english')
-	tfs = tfidf.fit_transform(token_tfidf.values())
-	print(tfs)
+def preprocessString(string):
+	#Preprocessing text by making them lower and remove punctuation
+	text = string.lower()
+	# TODO: Remove punctuation. Line below doesn't work in Python 
+	text = re.sub(r'[\.,-\?]', '', text)
+	return text
 
 def getKBDict():
 	''' Parses each KB text file in 'kb' directory into a
@@ -96,7 +172,7 @@ def getKBDict():
 	kbArticlePaths = glob.glob('kb/*')
 
 	# Dictionary to store KB articles
-	kbDict = {}
+	kbDict = OrderedDict()
 
 	# Load contents of each file
 	for articlePath in kbArticlePaths:
