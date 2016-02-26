@@ -20,15 +20,14 @@ slowResponse = False # Adds a delays before bot responds
 
 kbArticleID = -1
 
-####################################
-#            HER BRAIN
-####################################
-####################################
+###################################################################################################
+# Class definitions
+###################################################################################################
 # TODO: These two classes currently must be copied/pasted across to kbTrainer (or vice-verse)
 #       when a change is made to the class... because I suck at pickling. And if I use a
 #       separate class file the brain isn't able to access the functions in this chatClient class
 #       (trying to import chatClient functions into a brain.py class breaks everything)
-#####################################
+###################################################################################################
 
 class Brain:
 	def __init__(self, kbWordsDict, brainEntryDict):
@@ -92,13 +91,12 @@ class BrainEntry:
 		self.domainKnowledgeDict = domainKnowledgeDict
 		self.boolKnowledgeDict = boolKnowledgeDict
 		self.steps = steps
-
-####################################
-# Classifiers
-####################################
+###################################################################################################
 # TODO: Put class in different file or pickle.
-# Class is requiredd to load 'myYesNoAnswerClassificationObject' and 'myGreetingClassificationObject' -
-#  instances of featureClassificationObject
+###################################################################################################
+# Class is requiredd to load 'myYesNoAnswerClassificationObject' and 'myGreetingClassificationObject'
+# instances of featureClassificationObject
+###################################################################################################
 class featureClassificationObject:
     def __init__(self, word_features, classifier):
         self.word_features = word_features
@@ -111,12 +109,21 @@ class featureClassificationObject:
                 features[w] = (w in words)
         return features
 
-###############################
+
+
+###################################################################################################
+###################################################################################################
+#                                          HER BRAIN
+###################################################################################################
 brain_file = open('picklejar/brain.pickle', 'rb')
 brain = pickle.load(brain_file)
 brain_file.close()
+###################################################################################################
 
 
+###################################################################################################
+#                                        Classifiers
+###################################################################################################
 # Load yesNoAnswerClassification instance
 # myYesNoAnswerClassificationObject: contains the word_features, trained NB classifier, and 'find_features([])' func
 classificationObjectInstanceFile = open('picklejar/myYesNoAnswerClassificationObject.pickle', 'rb')
@@ -125,14 +132,22 @@ classificationObjectInstanceFile.close();
 classificationObjectInstanceFile = open('picklejar/myGreetingClassificationObject.pickle', 'rb')
 myGreetingClassificationObject = pickle.load(classificationObjectInstanceFile)
 classificationObjectInstanceFile.close();
-# CONSTANTS
+
+###################################################################################################
+#                                         CONSTANTS
+###################################################################################################
 BOTNAME = "Red Queen (TSR)"
 DEFAULT_USERNAME = "User"
 NAME_COLUMN_WIDTH = 20
 
-# User data
+###################################################################################################
+#                                         User data
+###################################################################################################
 username = ''
 
+###################################################################################################
+#                                        NLTK Stuff
+###################################################################################################
 # NLTK Objects
 lemmatizer = WordNetLemmatizer()
 
@@ -140,48 +155,13 @@ lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 stop_words.remove('no')
 
-#################################################
-# STUBS | Test data | Test Classes | Test Objects
-#################################################
-###################################################
-# SECTION START:
-#
-# This section has been deprecated. Now using Brain
-# stub.
-####################################################
-# class KBArticle:
-# 	def __init__(self, resolution):
-# 		self.resolution = resolution; # Tuple of resolution steps
-
-# kbKeywordDict = {'address':(9, 'KB00206580'), 'login':(7, 'KB0083060')}
-
-# kb1 = KBArticle(('Resolve the incident by unlocking the email account.',
-# 'Verify with the user that their issue has been resolved.',
-# '''Help the user understand and correct the root cause if necessary.
-#    a. If the user has a mobile device connected to their work email, verify that the user has updated the password on their mobile device as well, since that may be the root cause of the account becoming locked.'''
-#    ))
-
-# kb2 = KBArticle(('Verify the customer\'s current billing address',
-# 				'Verify the customer\'s current mailing address',
-# 				'Verify that the customer is requesting a change to their billing address only or also their mailing address',
-# 				'Update their billing address',
-# 				'If the customer would like to update their mailing address as well, update their mailing address',
-# 				'Confirm the customer\'s new billing address and, if applicable, their mailing address after the change'
-# ))
-
-# kbLibrary = {'KB0083060':kb1, 'KB00206580':kb2}
-
-# ##################################################
-# # END
-# ##################################################
-
-######################################################
-# STUBS: END
-######################################################
-
-##############################################
-# Start of main code
-##############################################
+###################################################################################################
+# ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+###################################################################################################
+#                                           MAIN CODE
+###################################################################################################
+# ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+###################################################################################################
 def main():
 	''' TODO: Docstring'''
 
@@ -211,8 +191,10 @@ def main():
 
 	tellUser("I'm glad I could help. Have a great day!")
 
-	
 
+###################################################################################################
+#                                             FUNCTIONS
+###################################################################################################
 def determineIssue(isFirstIssue):
 	if isFirstIssue:
 		tellUser("Hello, {}! How can I help you today? ".format(username))
