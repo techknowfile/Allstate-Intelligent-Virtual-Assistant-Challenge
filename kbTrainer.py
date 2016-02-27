@@ -77,13 +77,13 @@ class Brain:
 
 			if step[1] == 'conditional_update_domain_knowledge':
 				# Check to see that the boolean flag has been set to True. If so, run conditional step...
-				if boolKnowledgeDict.get('or_bool') == True:
+				if boolKnowledgeDict.get('or_also_bool') == True:
 					tellUser(step[0]) # Ask user for domain knowledge
 					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
 
 
 class BrainEntry:
-	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
+	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps, loop_step):
 		self.domainKnowledgeDict = domainKnowledgeDict
 		self.boolKnowledgeDict = boolKnowledgeDict
 		self.steps = steps
@@ -105,19 +105,38 @@ def main():
 	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues', 'causes'])
 
 	#STUB
-	myBrainEntry = BrainEntry(
-	{'billing_address':[], 'mailing_address':[]},
-		{'or_bool':None},
+	myBrainEntry0 = BrainEntry(
+		{'billing_address':[], 'mailing_address':[]},
+		{'billing_address_bool':None, 'mailing_address_bool':None},
 		[
 			['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
 			['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
-			['Are you requesting to change your billing address only or also your mailing address?', 'or_bool'],
-			['What would you like your new billing address to be?', 'update_domain_knowledge', 'billing_address'],
-			['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address'],
+			['Are you requesting to change your billing address only or also your mailing address?', 'or_bool', (('billing_address_bool', 'billing address'),('mailing_address_bool', 'mailing address'))],
+			['What would you like your new billing address address to be?', 'conditional_update_domain_knowledge', 'billing_address', 'billing_address_bool'],
+			['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address', 'mailing_address_bool'],
 			['', 'confirm']
-		]
+		],
+		None # stub for loop step
 	)
-	myBrain = Brain(kbWordsDict, {'KB00206580':myBrainEntry})
+	myBrainEntry1 = BrainEntry(
+		{},
+		{'issue_bool':None},
+		[
+			['I have unlocked your email account', 'resolve'],
+			['Please verify that your issue has been resolved', 'yes_no', 'issue_bool'],
+		],
+		None # stub for loop step
+	)
+	myBrainEntry2 = BrainEntry(
+		{},
+		{'computer_bool':None},
+		[
+			['Please verify that your computer is plugged in.', 'yes_no', 'issue_bool'],
+		],
+		None # stub for loop step
+	)
+	brainEntryDict = {'KB00206580':myBrainEntry0, 'KB0083060':myBrainEntry1, 'KB00001337': myBrainEntry2}
+	myBrain = Brain(kbWordsDict, brainEntryDict)
 
 	brain_file = open("picklejar/brain.pickle", "wb")
 	pickle.dump(myBrain, brain_file)
