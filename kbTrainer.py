@@ -211,12 +211,12 @@ def getKBDict():
 		issues = []	# Stores a list of the Issue/Error entries (ex: ['User is not able to login to email system via Outlook', 'User is not able to login to web-email from a web browser'])
 		causes = []	# Stores a list of the Cause entires (ex: ['User entered incorrect ID and Password.', 'User email account is locked after three consecutive failed login attempts.'])
 		resolution = [] # Stores a LIST OF LISTS. Lists contain [text, level], where 'text' is the resolution text and 'level'
-					    # is the list level of the entry (either 0 or 1).
-					    # ex: [['Resolve the incident by unlocking the email account.', 0],
-					    #	   ['Verify with the user that their issue has been resolved.', 0],
-					    #	   ['Help the user understand and correct the root cause if necessary.', 0],
-					    #	   ['If the user has a mobile device connected to their work email, ...', 1]]
-					    # Note that a list entry with a level == 1 is a child step of the most recent step with a level == 0
+						# is the list level of the entry (either 0 or 1).
+						# ex: [['Resolve the incident by unlocking the email account.', 0],
+						#	   ['Verify with the user that their issue has been resolved.', 0],
+						#	   ['Help the user understand and correct the root cause if necessary.', 0],
+						#	   ['If the user has a mobile device connected to their work email, ...', 1]]
+						# Note that a list entry with a level == 1 is a child step of the most recent step with a level == 0
 
 		# track which section of the article is currently being read
 		currentSection = 'initial'
@@ -278,18 +278,23 @@ def getKBDict():
 	return kbDict
 
 def processResolution(steps):
+	knowledge_dict = {}
+	bool_dict = {}
+	steps_list = []
 	modSteps = []
 	for step, level in steps:
+		step_type = ''
+		step_list = []
 		words = word_tokenize(step)
 		tagged_words = nltk.pos_tag(words)
-
 		statement = []
 		modStep = None
 
 		# 'Convert 'resolve' step to first person
-		if tagged_words[0][0] == "Resolve":
+		if tagged_words[0][0] == 'Resolve':
+			step_type = 'resolve'
 			verb_index = None
-			statement = ['I', 'have', ]
+			statement = ['I', 'have']
 			for i, tagged_word in enumerate(tagged_words):
 				word = tagged_word[0]
 				tag = tagged_word[1]
@@ -303,7 +308,7 @@ def processResolution(steps):
 				statement.extend(['for', 'you'])
 			modStep = ' '.join(statement) + '.'
 		# Convert 'Verify' step into proper form
-		elif tagged_words[0][0] == "Verify":
+		elif tagged_words[0][0] == 'Verify':
 			statement = []
 			#######################################################################################
 			# Determine whether to ask Yes/No question or to ask for specific piece of information
@@ -311,28 +316,123 @@ def processResolution(steps):
 			questionType = None
 			if 'or' in words: # Asking about one thing OR another (get input). Have to consider if word 'also' or synonym is found
 				questionType = 'OPTION'
+
+				if 'also' in words:
+					step_type = 'or_also_bool'
+
+				else: 
+					step_type = 'or_bool'
+			
+				# get verb index
+				for i, tagged_word in enumerate(tagged_words):
+					word = tagged_word[0]
+					tag = tagged_word[1]
+					if tag == 'VBG':
+						verb_index = i
+						break;
+
+				#######################################
+				#  TODO: Get Nouns (using or to split sides)
+				#######################################
+				# use function to get noun before or and noun after or as two variables
+				# these go into ((noun_1_bool, noun 1), (noun_2_bool, noun 2)) format
+				# and get added to step_list[2] at the end
+
+				##################################################
+				# add noun_1_bool and noun_2_bool to dictionary
+				##################################################
+
+				#######################################
+				#  TODO: Get possessive word
+				#######################################
+
+
+				########################################
+				# Build statement
+				########################################
+				statement.extend(['Are', 'you'])
+				statement.append(words[verb_index])
+				statement.extend(words[verb_index+1:])
+
+				modStep = ' '.join(statement) + '?'
+
+
+
+
+
+
+			################################################
+			#        Set Question type:Yes/No
+			################################################
 			else:
 				for word, tag in tagged_words[1:]:
 					# Yes/No - Look for past participles or gerunds (is it 'working', issue has 'been' 'resolved')
 					
 					if tag in ('VB', 'VBD', 'VBG', 'VBN'):
 						questionType = 'YN'
-						break;
+						break
+
+			################################################
+			#           Add Domain Knowledge
+			################################################	
 			if not questionType:
 				questionType = 'DOMAIN'
 
-			if questionType == 'YN':
+			if questionType == 'DOMAIN':
+				var_found = True
+				possessive_index = None
+				nouns = []
+				verb_index = None
+				stored_info = [] # input that needs to be verified/returned to the user as output
+ 
+				possessive_index = getPossessiveIndex(enumerate(tagged_words))
+ 
+				for i, tagged_word in enumerate(tagged_words[possessive_index+1:]): # scan after possessive noun
+					word = tagged_word[0]
+					tag = tagged_word[1]
+ 
+					if tag in ('NN', 'NNS'): # noun and plural noun
+						nouns.append(word)
+					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ') and not verb_index:
+						verb_index = i
+ 
+				# look through list of nouns to find variables that need to be created
+				# assumption: steps involving domain knowledge will only contain one noun/variable at a time (ie verify the customer's x)
+				for i, word in enumerate(nouns):
+					if (nouns[i+1]):
+						next_word = nouns[i+1]
+						new_domain_var = word + '_' + next_word
+						word_to_store =  word + ' ' + next_word
+						knowledge_dict[new_domain_var] = None
+						break
+					elif not next_word: # in the off chance that the noun is not compound, only store the first noun
+						new_domain_var = word
+						word_to_store =  word
+						knowledge_dict[new_domain_var] = None
+ 
+				statement.extend(['Can', 'I', 'verify', 'your', ])
+				statement.append(word_to_store)
+				modStep = ' '.join(statement) + '?'
+ 
+				step_list.append(modStep)
+				step_list.append("add_domain_knowledge")
+				step_list.append(new_domain_var)
+
+
+
+
+
+			################################################
+			#             Yes/No Question
+			################################################
+			elif questionType == 'YN':
 				possessive_index = None
 				nouns = []
 				verb_index = None
 
 				# Find start of useful info in step
-				# TODO: Refactor this for loop into a function that returns the possessive index
-				for i, tagged_word in enumerate(tagged_words):
-					word = tagged_word[0]
-					tag = tagged_word[1]
-					if tag in ('POS', 'PRP$'): # possessive ending and possessive pronoun POS tags
-						possessive_index = i
+				possessive_index = getPossessiveIndex(enumerate(tagged_words))
+	
 				# Find the subject (noun) and verbs
 				for i, tagged_word in enumerate(tagged_words[possessive_index+1:]): # Scan through everything after the possessive noun, which is assumed to be "user's", "customer's", "their", or similar
 					word = tagged_word[0]
@@ -348,17 +448,28 @@ def processResolution(steps):
 					statement.append(' and '.join(nouns))
 					statement.extend(words[possessive_index+1+verb_index:-1])
 
+				else:
+					statement.extend(words)
+
 				modStep = ' '.join(statement) + '.'
 
-		if modStep:
-			print(">>", modStep)
-			modSteps.append(modStep)
-		else: 
-			modSteps.append(step)
-	return modSteps
+		steps_list.append(step_list)
+		# TODO: Append all items to step list
+			
+	# STUB	
+	myBrainEntry = BrainEntry(knowledge_dict, bool_dict, steps_list, None)
+ 
+	for key, value in knowledge_dict.items():
+		print(key, value)
 
-
-
+def getPossessiveIndex(words):
+    for i, tagged_word in words:
+        word = tagged_word[0]
+        tag = tagged_word[1]
+        if tag in ('POS', 'PRP$'): # possessive ending and possessive pronoun POS tags
+            possessive_index = i
+   
+    return possessive_index
 
 def getPastParticiple(vbg):
 	vbn = verb.verb_past(vbg)
