@@ -283,11 +283,18 @@ def processResolution(steps):
 	steps_list = []
 	modSteps = []
 	for step, level in steps:
-		step_type = ''
 		step_list = []
+
+		statement = []
+		step_type = ''
+		new_domain_var = None
+		update_domain_var = None
+		new_bool_var = None
+
+
 		words = word_tokenize(step)
 		tagged_words = nltk.pos_tag(words)
-		statement = []
+
 		modStep = None
 
 		# 'Convert 'resolve' step to first person
@@ -331,6 +338,54 @@ def processResolution(steps):
 						verb_index = i
 						break;
 
+
+
+				or_index = None 
+				noun_before = ''
+				noun_after = ''
+				possessive_index = None
+				nouns_after = []
+				nouns_before = []
+
+
+				# split into two strings: before and after 'or' 
+				for i, tagged_word in enumerate(tagged_words):
+					word = tagged_word[0]
+					tag = tagged_word[1]
+					if word == 'or':
+						str_before_or = ' '.join(words[:i])
+						str_after_or = ' '.join(words[i+1:]) # or only i if using split function 
+						#str_after_or = str_after_or.split('or') 
+						or_index = i
+						break
+				
+				# split to put into list form 
+				str_before_or = str_before_or.split()
+				str_after_or = str_after_or.split()
+
+				# get pos tagging 
+				str_before_or = nltk.pos_tag(str_before_or)
+				str_after_or = nltk.pos_tag(str_after_or)
+
+
+				#######################################################
+				# PROBS DONT NEED THIS ANYMORE BECAUSE OF CHUNKING LOL
+				#######################################################
+
+				# find all nouns in both strings 
+				nouns_before = findNouns(str_before_or) # need to add matching since as of now, 'customer change' (first pairing) is returned
+				nouns_after = findNouns(str_after_or)
+
+				
+				# find noun that matches stored domain knowledge 
+				#noun_before = findDomainKnowledge(nouns_before, False)
+				#noun_after = findDomainKnowledge(nouns_after, False)
+
+				# get new variable created from this domain knowledge
+				first_domain_var = findDomainKnowledge(nouns_before, True)
+				second_domain_var = findDomainKnowledge(nouns_after, True)
+
+
 				#######################################
 				#  TODO: Get Nouns (using or to split sides)
 				#######################################
@@ -341,11 +396,16 @@ def processResolution(steps):
 				##################################################
 				# add noun_1_bool and noun_2_bool to dictionary
 				##################################################
+				knowledge_dict[noun_before] = None
+				knowledge_dict[noun_after] = None
 
 				#######################################
 				#  TODO: Get possessive word
 				#######################################
+				possessive_index = getPossessiveIndex(enumerate(tagged_words))
 
+				step = step.replace(words[possessive_index], 'your')
+				words = word_tokenize(step)
 
 				########################################
 				# Build statement
@@ -356,8 +416,7 @@ def processResolution(steps):
 
 				modStep = ' '.join(statement) + '?'
 
-
-
+				#print(modStep)
 
 
 
@@ -414,9 +473,8 @@ def processResolution(steps):
 				statement.append(word_to_store)
 				modStep = ' '.join(statement) + '?'
  
-				step_list.append(modStep)
-				step_list.append("add_domain_knowledge")
-				step_list.append(new_domain_var)
+				step_type = 'add_domain_knowledge'
+				new_domain_var = ''
 
 
 
@@ -452,15 +510,71 @@ def processResolution(steps):
 					statement.extend(words)
 
 				modStep = ' '.join(statement) + '.'
+				step_type = 'yes_no'
 
+				print(modStep, 'test')
+
+
+		################################################
+		#            Confirm updates/changes
+		################################################
+		elif tagged_words[0][0] == 'Confirm':
+			modStep = ''
+			step_type = 'confirm'
+
+		
+
+		# Append items to step_list
+		if modStep:
+			step_list.append(modStep)
+		if step_type:
+			step_list.append(step_type)
+		# TODO: Append rest of items
+		# Append step_list to steps_list
 		steps_list.append(step_list)
-		# TODO: Append all items to step list
+
 			
 	# STUB	
 	myBrainEntry = BrainEntry(knowledge_dict, bool_dict, steps_list, None)
  
 	for key, value in knowledge_dict.items():
 		print(key, value)
+
+
+
+# find domain knowledge in a list of nouns - get_var is a bool value that determines whether or not the returned value 
+# should be in the form of a noun with an underscore or space 
+def findDomainKnowledge(noun_list, get_var): 
+	for i, word in enumerate(noun_list):
+		if (noun_list[i+1]):
+			next_word = noun_list[i+1]
+			new_domain_var = word + '_' + next_word
+			word_to_store =  word + ' ' + next_word
+			#knowledge_dict[new_domain_var] = None
+			if get_var is False:
+				return word_to_store
+			elif get_var is True:
+				return new_domain_var
+			break
+		elif not next_word: # in the off chance that the noun is not compound, only store the first noun
+			new_domain_var = word
+			word_to_store =  word
+			#knowledge_dict[new_domain_var] = None
+
+	return word_to_store
+
+
+def findNouns(word_list):
+	nouns = []
+	for i, tagged_word in enumerate(word_list):	
+		word = tagged_word[0]
+		tag = tagged_word[1]
+		if tag in ('NN', 'NNS'):
+			nouns.append(word)
+
+	return nouns
+
+
 
 def getPossessiveIndex(words):
     for i, tagged_word in words:
@@ -470,6 +584,7 @@ def getPossessiveIndex(words):
             possessive_index = i
    
     return possessive_index
+
 
 def getPastParticiple(vbg):
 	vbn = verb.verb_past(vbg)
