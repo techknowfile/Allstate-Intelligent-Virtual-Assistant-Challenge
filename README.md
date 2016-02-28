@@ -16,3 +16,5 @@ Module dependencies:
 Note: If you have trouble installing any of the packages, try installing via wheel file or superpack!
 
 ASCII art by Steven James Walker
+
+'verb' module included is from the nodebox linguistics library, which is licensed under the GNU GNU GENERAL PUBLIC LICENSE Version 2. For more information, see the LICENSE.txt file in the verb directory. The linguistics library does not support Python 3+; however, the verb module does, and is used here to convert verbs into their past tense form.
