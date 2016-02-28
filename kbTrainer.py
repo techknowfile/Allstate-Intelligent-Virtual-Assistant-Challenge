@@ -94,50 +94,38 @@ class BrainEntry:
 
 def main():
 	# Get dictionary of KB dictionary files
+	# This just contains the text from each section broken up in
+	# an accessible manner
+	# DOES NOT GET ADDED TO BRAIN!
 	kbDict = getKBDict()
-	for key, value in kbDict.items():
-		print(key, value['title'])
 
+	##########################################
+	# Generate the KB Dictionary of knowledge
+	# needed for the brain to help with issues
+	##########################################
+	brainEntryDict = {}
 	for key, value in kbDict.items():
-		kbDict[key]['resolution'] = processResolution(kbDict[key]['resolution'])
-		print(kbDict[key]['resolution'])
+		aBrainEntry = processResolution(kbDict[key]['resolution'])
+		brainEntryDict[key] = aBrainEntry
 
+	#########################################
+	# Generate a dictionary storing the words
+	# in each KB section, keyed by the KB Key
+	#
+	# Needed by the Brain to match the user's
+	# input to the correct KB article
+	#########################################
 	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues', 'causes'])
 
-	#STUB
-	myBrainEntry0 = BrainEntry(
-		{'billing_address':[], 'mailing_address':[]},
-		{'billing_address_bool':None, 'mailing_address_bool':None},
-		[
-			['What is your current billing address?', 'add_domain_knowledge', 'billing_address'],
-			['What is your current mailing address?', 'add_domain_knowledge', 'mailing_address'],
-			['Are you requesting to change your billing address only or also your mailing address?', 'or_bool', (('billing_address_bool', 'billing address'),('mailing_address_bool', 'mailing address'))],
-			['What would you like your new billing address address to be?', 'conditional_update_domain_knowledge', 'billing_address', 'billing_address_bool'],
-			['What would you like your new mailing address to be?', 'conditional_update_domain_knowledge', 'mailing_address', 'mailing_address_bool'],
-			['', 'confirm']
-		],
-		None # stub for loop step
-	)
-	myBrainEntry1 = BrainEntry(
-		{},
-		{'issue_bool':None},
-		[
-			['I have unlocked your email account', 'resolve'],
-			['Please verify that your issue has been resolved', 'yes_no', 'issue_bool'],
-		],
-		None # stub for loop step
-	)
-	myBrainEntry2 = BrainEntry(
-		{},
-		{'computer_bool':None},
-		[
-			['Please verify that your computer is plugged in.', 'yes_no', 'issue_bool'],
-		],
-		None # stub for loop step
-	)
-	brainEntryDict = {'KB00206580':myBrainEntry0, 'KB0083060':myBrainEntry1, 'KB00001337': myBrainEntry2}
+	#########################################
+	# Build the Brain
+	#########################################
 	myBrain = Brain(kbWordsDict, brainEntryDict)
 
+	#########################################
+	# Pickle the Brain to be loaded into 
+	# a chat client
+	#########################################
 	brain_file = open("picklejar/brain.pickle", "wb")
 	pickle.dump(myBrain, brain_file)
 	brain_file.close()
@@ -289,8 +277,10 @@ def processResolution(steps):
 		step_type = ''
 		new_domain_var = None
 		update_domain_var = None
-		new_bool_var = None
-
+		new_bool_var = None # what we add to the bool dict
+		ref_bool_var = None # what we look up in the bool dict
+		if_question = None
+		key_noun_pair_tuple = None
 
 		words = word_tokenize(step)
 		tagged_words = nltk.pos_tag(words)
@@ -331,92 +321,22 @@ def processResolution(steps):
 					step_type = 'or_bool'
 			
 				# get verb index
-				for i, tagged_word in enumerate(tagged_words):
-					word = tagged_word[0]
-					tag = tagged_word[1]
-					if tag == 'VBG':
-						verb_index = i
-						break;
+				# for i, tagged_word in enumerate(tagged_words):
+				# 	word = tagged_word[0]
+				# 	tag = tagged_word[1]
+				# 	if tag == 'VBG':
+				# 		verb_index = i
+				# 		break;
 
+				orStepList = orStepParser(step)
+				for key_tuple in orStepList[1]:
+					bool_dict[key_tuple[0]] = None
+				# Set variables for step_list
+				modStep = orStepList[0]
+				key_noun_pair_tuple = orStepList[1]
 
-
-				or_index = None 
-				noun_before = ''
-				noun_after = ''
-				possessive_index = None
-				nouns_after = []
-				nouns_before = []
-
-
-				# split into two strings: before and after 'or' 
-				for i, tagged_word in enumerate(tagged_words):
-					word = tagged_word[0]
-					tag = tagged_word[1]
-					if word == 'or':
-						str_before_or = ' '.join(words[:i])
-						str_after_or = ' '.join(words[i+1:]) # or only i if using split function 
-						#str_after_or = str_after_or.split('or') 
-						or_index = i
-						break
-				
-				# split to put into list form 
-				str_before_or = str_before_or.split()
-				str_after_or = str_after_or.split()
-
-				# get pos tagging 
-				str_before_or = nltk.pos_tag(str_before_or)
-				str_after_or = nltk.pos_tag(str_after_or)
-
-
-				#######################################################
-				# PROBS DONT NEED THIS ANYMORE BECAUSE OF CHUNKING LOL
-				#######################################################
-
-				# find all nouns in both strings 
-				nouns_before = findNouns(str_before_or) # need to add matching since as of now, 'customer change' (first pairing) is returned
-				nouns_after = findNouns(str_after_or)
 
 				
-				# find noun that matches stored domain knowledge 
-				#noun_before = findDomainKnowledge(nouns_before, False)
-				#noun_after = findDomainKnowledge(nouns_after, False)
-
-				# get new variable created from this domain knowledge
-				first_domain_var = findDomainKnowledge(nouns_before, True)
-				second_domain_var = findDomainKnowledge(nouns_after, True)
-
-
-				#######################################
-				#  TODO: Get Nouns (using or to split sides)
-				#######################################
-				# use function to get noun before or and noun after or as two variables
-				# these go into ((noun_1_bool, noun 1), (noun_2_bool, noun 2)) format
-				# and get added to step_list[2] at the end
-
-				##################################################
-				# add noun_1_bool and noun_2_bool to dictionary
-				##################################################
-				knowledge_dict[noun_before] = None
-				knowledge_dict[noun_after] = None
-
-				#######################################
-				#  TODO: Get possessive word
-				#######################################
-				possessive_index = getPossessiveIndex(enumerate(tagged_words))
-
-				step = step.replace(words[possessive_index], 'your')
-				words = word_tokenize(step)
-
-				########################################
-				# Build statement
-				########################################
-				statement.extend(['Are', 'you'])
-				statement.append(words[verb_index])
-				statement.extend(words[verb_index+1:])
-
-				modStep = ' '.join(statement) + '?'
-
-				#print(modStep)
 
 
 
@@ -438,88 +358,133 @@ def processResolution(steps):
 				questionType = 'DOMAIN'
 
 			if questionType == 'DOMAIN':
-				var_found = True
-				possessive_index = None
-				nouns = []
-				verb_index = None
-				stored_info = [] # input that needs to be verified/returned to the user as output
- 
-				possessive_index = getPossessiveIndex(enumerate(tagged_words))
- 
-				for i, tagged_word in enumerate(tagged_words[possessive_index+1:]): # scan after possessive noun
-					word = tagged_word[0]
-					tag = tagged_word[1]
- 
-					if tag in ('NN', 'NNS'): # noun and plural noun
-						nouns.append(word)
-					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ') and not verb_index:
-						verb_index = i
- 
-				# look through list of nouns to find variables that need to be created
-				# assumption: steps involving domain knowledge will only contain one noun/variable at a time (ie verify the customer's x)
-				for i, word in enumerate(nouns):
-					if (nouns[i+1]):
-						next_word = nouns[i+1]
-						new_domain_var = word + '_' + next_word
-						word_to_store =  word + ' ' + next_word
-						knowledge_dict[new_domain_var] = None
-						break
-					elif not next_word: # in the off chance that the noun is not compound, only store the first noun
-						new_domain_var = word
-						word_to_store =  word
-						knowledge_dict[new_domain_var] = None
- 
-				statement.extend(['Can', 'I', 'verify', 'your', ])
-				statement.append(word_to_store)
-				modStep = ' '.join(statement) + '?'
- 
+				returnList = addDomainStepParser(step)
+				
+				# Set step_list variables
 				step_type = 'add_domain_knowledge'
-				new_domain_var = ''
-
-
-
-
+				modStep = returnList[0]
+				new_domain_var = returnList[1]
+				# Add new domain var to dictionary
+				knowledge_dict[new_domain_var] = None
 
 			################################################
 			#             Yes/No Question
 			################################################
 			elif questionType == 'YN':
-				possessive_index = None
-				nouns = []
-				verb_index = None
 
-				# Find start of useful info in step
-				possessive_index = getPossessiveIndex(enumerate(tagged_words))
-	
-				# Find the subject (noun) and verbs
-				for i, tagged_word in enumerate(tagged_words[possessive_index+1:]): # Scan through everything after the possessive noun, which is assumed to be "user's", "customer's", "their", or similar
-					word = tagged_word[0]
-					tag = tagged_word[1]
-					if tag in ('NN', 'NNS'): # noun and plural noun
-						nouns.append(word)
-					if tag in ('VB', 'VBD', 'VBG', 'VBN', 'VBZ') and not verb_index:
-						verb_index = i
+				returnList = yesNoStepParser(step)
 
-
-				if (possessive_index):
-					statement.extend(['Please', 'verify', 'that', 'your'])
-					statement.append(' and '.join(nouns))
-					statement.extend(words[possessive_index+1+verb_index:-1])
-
-				else:
-					statement.extend(words)
-
-				modStep = ' '.join(statement) + '.'
+				# Set step_list variables
 				step_type = 'yes_no'
+				modStep = returnList[0]
+				new_bool_var = returnList[1]
 
-				print(modStep, 'test')
+				# Add new bool to dictionary
+				bool_dict[new_bool_var] = None
+
+
+
+		################################################
+		#    Update Domain Knowledge
+		################################################
+		elif tagged_words[0][0] == 'Update':
+			updateStepList = updateStepParser(step)
+
+			# Set variables for step_list
+			modStep = updateStepList[0]
+			step_type = 'update_domain_knowledge'
+			update_domain_var = updateStepList[1]
+
+		################################################
+		#    Conditional Update Domain Knowledge
+		################################################
+		elif tagged_words[0][0] == 'If':
+			# Get if statement
+			if_statements = step.split(',')
+			if_statement = nltk.word_tokenize(if_statements[0])
+			tagged_words = nltk.pos_tag(if_statement)
+
+			# Get nouns in if statement
+			nouns = getNounNamedEntities(tagged_words)
+			keyed_nouns = [noun.replace(" ", "_") for noun in nouns]
+			# get keys for possible noun_bools
+			keyed_noun_bools = [noun + "_bool" for noun in keyed_nouns]
+
+			# Determine if noun_bool exists in dictionary.
+			# If it does, it's a conditional_update_domain_knowledge step
+			# If it does not, then it is an if_yes_no, meaning that we need
+			# To ask a question, potentially create a new noun_bool,
+			# check the statement that follows the comma, and look at its
+			# first word to determine what to do next
+
+			keyed_noun_bool_exists = False
+			for noun_bool in keyed_noun_bools:
+				if noun_bool in bool_dict:
+					keyed_noun_bool_exists = True
+					break
+
+			###########################################
+			# Complicated IF (noun_bool doesn't exist)
+			###########################################
+			if not keyed_noun_bool_exists:
+
+				#######################################
+				# Create if question
+				#######################################
+				ifChunkGram = r"""Chunk: (?:<VBZ>){<.*>*}"""
+				ifChunkParser = nltk.RegexpParser(ifChunkGram)
+				chunked = ifChunkParser.parse(tagged_words)
+
+				statement_fragments = extractChunk(chunked)
+				statement_fragment = statement_fragments[0].replace('their', 'your')
+
+				modStep = "Do you have {}?".format(statement_fragment)
+
+				# Set dictionary vars
+				new_bool_var = keyed_noun_bools[-1]
+				new_domain_var = keyed_nouns[-1]
+
+				# Add to dictionaries
+				bool_dict[new_bool_var] = None
+				knowledge_dict[new_domain_var] = None
+
+				####################################
+				# Determin type of Complicated If
+				####################################
+				statement = if_statements[1].strip()
+				words = nltk.word_tokenize(statement)
+				firstWord = words[0]
+				if firstWord.lower() == 'verify':
+					returnList = yesNoStepParser(statement)
+					
+					# Set step_list variables
+					step_type = 'if_yes_no_yes_no'
+					if_question = returnList[0]
+					new_bool_var = returnList[1]
+
+					# Add new bool to dictionary
+					bool_dict[new_bool_var] = None
+
+				# if firstWord.
+
+			elif keyed_noun_bool_exists:
+				#####################################
+				# noun_bool exists
+				#####################################
+				updateStepList = updateStepParser(step)
+
+				# Set variables for step_list
+				modStep = updateStepList[0]
+				step_type = 'conditional_update_domain_knowledge'
+				update_domain_var = updateStepList[1]
+				ref_bool_var = updateStepList[1] + "_bool"
 
 
 		################################################
 		#            Confirm updates/changes
 		################################################
 		elif tagged_words[0][0] == 'Confirm':
-			modStep = ''
+			modStep = ' '
 			step_type = 'confirm'
 
 		
@@ -529,106 +494,227 @@ def processResolution(steps):
 			step_list.append(modStep)
 		if step_type:
 			step_list.append(step_type)
+		if if_question:
+			step_list.append(if_question)
+		if new_domain_var:
+			step_list.append(new_domain_var)
+		if update_domain_var:
+			step_list.append(update_domain_var)
+		if new_bool_var:
+			step_list.append(new_bool_var)
+		if ref_bool_var:
+			step_list.append(ref_bool_var)
+		if key_noun_pair_tuple:
+			step_list.append(key_noun_pair_tuple)
+
+		print(step_list)
+
 		# TODO: Append rest of items
 		# Append step_list to steps_list
+
 		steps_list.append(step_list)
+	print("KD:", knowledge_dict)
+	print("BD:", bool_dict)
 
-			
-	# STUB	
-	myBrainEntry = BrainEntry(knowledge_dict, bool_dict, steps_list, None)
- 
-	for key, value in knowledge_dict.items():
-		print(key, value)
+	thisBrainEntry = BrainEntry(knowledge_dict, bool_dict, steps_list, None)
+	return thisBrainEntry
 
 
 
-# find domain knowledge in a list of nouns - get_var is a bool value that determines whether or not the returned value 
-# should be in the form of a noun with an underscore or space 
-def findDomainKnowledge(noun_list, get_var): 
-	for i, word in enumerate(noun_list):
-		if (noun_list[i+1]):
-			next_word = noun_list[i+1]
-			new_domain_var = word + '_' + next_word
-			word_to_store =  word + ' ' + next_word
-			#knowledge_dict[new_domain_var] = None
-			if get_var is False:
-				return word_to_store
-			elif get_var is True:
-				return new_domain_var
-			break
-		elif not next_word: # in the off chance that the noun is not compound, only store the first noun
-			new_domain_var = word
-			word_to_store =  word
-			#knowledge_dict[new_domain_var] = None
+def extractChunk(t):		
+	entities = []
+	# Check label of chunk
+	if hasattr(t, 'label') and (t.label() == 'Chunk'):
+		# Add chunk to entities list
+		entities.append(' '.join(c[0] for c in t.leaves()))
+	else:
+		for child in t:
+			if not isinstance(child, str):
+				# Parse sub tree for new chunk
+				entities.extend(extractChunk(child))
 
-	return word_to_store
+	return entities
 
 
-def extractChunk(t):
-            entities = []
-            if hasattr(t, 'label') and t.label() == 'Chunk':
-                entities.append(' '.join(c[0] for c in t.leaves()))
-            else:
-                for child in t:
-                    if not isinstance(child, str):
-                        entities.extend(extractChunk(child))
+def ifStatementParser(sentence):
+	# Tokenize and tag
 
-            return entities
+	words = nltk.word_tokenize(sentence)
+	tagged_words = nltk.pos_tag(words)
+
+	noun_entities = getNounNamedEntities(tagged_words)
+	
+
+
+def updateStepParser(sentence):
+	# Tokenize and tag
+
+	words = nltk.word_tokenize(sentence)
+	tagged_words = nltk.pos_tag(words)
+
+	noun_entities = getNounNamedEntities(tagged_words)
+	noun = noun_entities[-1]
+	noun_key = noun.replace(" ", "_")
+	verb_entities = getVerbs(tagged_words)
+
+
+	verb = getPastParticiple(verb_entities[0].lower())
+
+	new_statement = 'What would you like your new {} to be?'.format(noun)
+	returnList = [new_statement, noun_key]
+	return returnList
+
+def getNounNamedEntities(tagged_words):
+	# define noun chunk and build nounChunkParser for named entity (noun) extraction
+	nounChunkGram = r"""Chunk: {<NN.?>+}"""
+	nounChunkParser = nltk.RegexpParser(nounChunkGram)
+	chunked_nouns = nounChunkParser.parse(tagged_words)
+
+	noun_entities = []
+
+	noun_entities.extend(extractChunk(chunked_nouns))
+
+	return noun_entities
+
+def getVerbs(tagged_words):
+	# define noun chunk and build nounChunkParser for named entity (noun) extraction
+	verbChunkGram = r"""Chunk: {<VB.?>+}"""
+	verbChunkParser = nltk.RegexpParser(verbChunkGram)
+	chunked_verbs = verbChunkParser.parse(tagged_words)
+
+	verb_entities = []
+
+	verb_entities.extend(extractChunk(chunked_verbs))
+
+	return verb_entities
+
 
 
 def orStepParser(sentence):
-    words = nltk.word_tokenize(sentence)
-    tagged = nltk.pos_tag(words)
+	# Tokenize and tag
+	words = nltk.word_tokenize(sentence)
+	tagged = nltk.pos_tag(words)
 
-    chunkGram = r"""Chunk: {<POS|PRP\$><.*>*<NN.?>+<.*>*<CC><.*>*<NN.?>+}"""
-    chunkParser = nltk.RegexpParser(chunkGram)
-    chunked = chunkParser.parse(tagged)
+	# Get everything from the first possessive on into a chunk
+	chunkGram = r"""Chunk: {<POS|PRP\$><.*>*<NN.?>+<.*>*<CC><.*>*<NN.?>+}"""
+	chunkParser = nltk.RegexpParser(chunkGram)
+	chunked = chunkParser.parse(tagged)
 
-    nounChunkGram = r"""Chunk: {<NN.?>+}"""
-    nounChunkParser = nltk.RegexpParser(nounChunkGram)
+	# define possessive chunk and build possessiveParser for possessive pronoun/possessive ending extraction
+	possessiveChunkGram = r"""Chunk: {<POS|PRP\$>}"""
+	possessiveParser = nltk.RegexpParser(possessiveChunkGram)
 
-    possessiveChunkGram = r"""Chunk: {<POS|PRP\$>}"""
-    possessiveParser = nltk.RegexpParser(possessiveChunkGram)
+	# Get everything from the gerund up to and excluding the first possessive (must be followed by conjunction [presumed 'or']
+	gerundActionGram = r"""Chunk: {<VBG><.*>*}(?:<POS|PRP\$><.*>*<CC>)"""
+	gerundActionParser = nltk.RegexpParser(gerundActionGram)
+	gerundActionChunked = gerundActionParser.parse(tagged)
 
-    gerundActionGram = r"""Chunk: {<VBG><.*>*}(?:<POS|PRP\$><.*>*<CC>)"""
-    gerundActionParser = nltk.RegexpParser(gerundActionGram)
-    gerundActionChunked = gerundActionParser.parse(tagged)
+	# List of items to return
+	returnList = []
 
-    returnList = []
+	main_entities = []
+	main_entities.extend(extractChunk(chunked))
 
-    main_entities = []
-    main_entities.extend(extractChunk(chunked))
+	gerund_action_entities = []
+	gerund_action_entities.extend(extractChunk(gerundActionChunked))
 
-    gerund_action_entities = []
-    gerund_action_entities.extend(extractChunk(gerundActionChunked))
-    
-    noun_entities = []
+	main_entity = main_entities[0]
 
-    main_entity = main_entities[0]
+	words = nltk.word_tokenize(main_entity)
+	tagged_words = nltk.pos_tag(words)
+	possessive_entities = set()
+	for tagged_word in tagged_words:
+		if tagged_word[1] in ('POS', 'PRP$'):
+			possessive_entities.add(tagged_word[0])
 
-    words = nltk.word_tokenize(main_entity)
-    tagged_words = nltk.pos_tag(words)
-    possessive_entities = set()
-    for tagged_word in tagged_words:
-        if tagged_word[1] in ('POS', 'PRP$'):
-            possessive_entities.add(tagged_word[0])
+	for possessive in possessive_entities:
+		main_entity = main_entity.replace(possessive, 'your')
+	new_statement = 'Are you {} {}'.format(gerund_action_entities[0], main_entity)
 
-    for possessive in possessive_entities:
-        main_entity = main_entity.replace(possessive, 'your')
-    new_statement = 'Are you {} {}'.format(gerund_action_entities[0], main_entity)
-    chunked = nounChunkParser.parse(tagged_words)
-    noun_entities.extend(extractChunk(chunked))
 
-    nounKeyList = []
-    for noun_entity in noun_entities:
-        nounTuple = (noun_entity.replace(" ", "_"), noun_entity)
-        nounKeyList.append(nounTuple)
-    nounKeyTuple = tuple(nounKeyList)
-        
-    returnList.append(new_statement)
-    returnList.append(nounKeyTuple)
+	noun_entities = getNounNamedEntities(tagged_words)
 
-    return returnList
+	nounKeyList = []
+	for noun_entity in noun_entities:
+		nounTuple = (noun_entity.replace(" ", "_") + "_bool", noun_entity)
+		nounKeyList.append(nounTuple)
+	nounKeyTuple = tuple(nounKeyList)
+		
+	returnList.append(new_statement)
+	returnList.append(nounKeyTuple)
+
+	return returnList
+
+def addDomainStepParser(sentence):
+	# Tokenize and tag
+	words = nltk.word_tokenize(sentence)
+	tagged = nltk.pos_tag(words)
+
+	# Get everything after the first possessive on into a chunk
+	chunkGram = r"""Chunk: (?:<POS|PRP\$>){<[^\.]*>]*}"""
+	chunkParser = nltk.RegexpParser(chunkGram)
+	chunked = chunkParser.parse(tagged)
+
+	statements = extractChunk(chunked)
+	statement = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+
+	words = nltk.word_tokenize(statement)
+	tagged_words = nltk.pos_tag(words)
+
+	# Get nouns
+	noun_entities = getNounNamedEntities(tagged_words)
+	noun_entity = noun_entities[0] # assuming there's only one named entity (TODO: lol, this isn't getting fixed)
+
+	noun_key = noun_entity.replace(" ", "_")
+
+	new_statement = "What is your {}.".format(statement)
+	
+	returnList = [new_statement, noun_key]
+	return returnList
+
+def yesNoStepParser(sentence):
+	# Tokenize and tag
+	words = nltk.word_tokenize(sentence)
+	tagged = nltk.pos_tag(words)
+
+	# Get everything after the first possessive on into a chunk
+	chunkGram = r"""Chunk: (?:<POS|PRP\$>){<[^\.]*>]*}"""
+	chunkParser = nltk.RegexpParser(chunkGram)
+	chunked = chunkParser.parse(tagged)
+
+	statements = extractChunk(chunked)
+	statement_possessive_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+
+	# Get everything from the first first gerund on into a chunk
+	chunkGram = r"""Chunk: {<VBN><[^\.]*>]*}"""
+	chunkParser = nltk.RegexpParser(chunkGram)
+	chunked = chunkParser.parse(tagged)
+
+	# Get everything after the first possessive on into a chunk
+	statements = extractChunk(chunked)
+	statement_verb_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+	
+	if len(statement_possessive_first) > len (statement_verb_first):
+
+		statement = statement_possessive_first # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+
+		new_statement = "Please verify that your {}.".format(statement)
+	
+	else:
+		statement = statement_verb_first
+		new_statement = "Have you {}?".format(statement)
+
+	# Get nouns
+
+	words = nltk.word_tokenize(statement)
+	tagged_words = nltk.pos_tag(words)
+	noun_entities = getNounNamedEntities(tagged_words)
+	noun_entity = noun_entities[0] # assuming there's only one named entity (TODO: lol, this isn't getting fixed)
+
+	noun_bool = noun_entity.replace(" ", "_") + "_bool"
+
+	returnList = [new_statement, noun_bool]
+	return returnList
 
 
 def findNouns(word_list):
@@ -644,13 +730,13 @@ def findNouns(word_list):
 
 
 def getPossessiveIndex(words):
-    for i, tagged_word in words:
-        word = tagged_word[0]
-        tag = tagged_word[1]
-        if tag in ('POS', 'PRP$'): # possessive ending and possessive pronoun POS tags
-            possessive_index = i
+	for i, tagged_word in words:
+		word = tagged_word[0]
+		tag = tagged_word[1]
+		if tag in ('POS', 'PRP$'): # possessive ending and possessive pronoun POS tags
+			possessive_index = i
    
-    return possessive_index
+	return possessive_index
 
 
 def getPastParticiple(vbg):
