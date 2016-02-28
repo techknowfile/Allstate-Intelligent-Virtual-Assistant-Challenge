@@ -62,8 +62,10 @@ class Brain:
 		for step in brainEntry.steps:
 			if step[1] == 'add_domain_knowledge':
 				tellUser(step[0]) # Ask user for domain knowledge
-				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
-
+				try:
+					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+				except:
+					tellUser("Oops. My dictionary value for {} is missing. I fear our chat session may end in disaster...").format(step[2])
 			if step[1] == 'confirm':
 				for key, value in brainEntry.domainKnowledgeDict.items():
 					if len(value) == 1:
@@ -365,7 +367,7 @@ def processResolution(steps):
 				modStep = returnList[0]
 				new_domain_var = returnList[1]
 				# Add new domain var to dictionary
-				knowledge_dict[new_domain_var] = None
+				knowledge_dict[new_domain_var] = []
 
 			################################################
 			#             Yes/No Question
@@ -446,7 +448,7 @@ def processResolution(steps):
 
 				# Add to dictionaries
 				bool_dict[new_bool_var] = None
-				knowledge_dict[new_domain_var] = None
+				knowledge_dict[new_domain_var] = []
 
 				####################################
 				# Determin type of Complicated If
@@ -512,7 +514,8 @@ def processResolution(steps):
 		# TODO: Append rest of items
 		# Append step_list to steps_list
 
-		steps_list.append(step_list)
+		if step_list:
+			steps_list.append(step_list)
 	print("KD:", knowledge_dict)
 	print("BD:", bool_dict)
 
@@ -673,6 +676,12 @@ def addDomainStepParser(sentence):
 	return returnList
 
 def yesNoStepParser(sentence):
+	#####################
+	#   DEBUG VARS
+	#####################
+	possessiveNotFound = False
+	verbNotFound = False
+
 	# Tokenize and tag
 	words = nltk.word_tokenize(sentence)
 	tagged = nltk.pos_tag(words)
@@ -683,8 +692,12 @@ def yesNoStepParser(sentence):
 	chunked = chunkParser.parse(tagged)
 
 	statements = extractChunk(chunked)
-	statement_possessive_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
-
+	try:
+		statement_possessive_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+	except:
+		print(sentence, "Possessive not found")
+		statement_possessive_first = ''
+		possessiveNotFound = True
 	# Get everything from the first first gerund on into a chunk
 	chunkGram = r"""Chunk: {<VBN><[^\.]*>]*}"""
 	chunkParser = nltk.RegexpParser(chunkGram)
@@ -692,19 +705,27 @@ def yesNoStepParser(sentence):
 
 	# Get everything after the first possessive on into a chunk
 	statements = extractChunk(chunked)
-	statement_verb_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
-	
-	if len(statement_possessive_first) > len (statement_verb_first):
-
-		statement = statement_possessive_first # assuming there's only one statements (TODO: lol, this isn't getting fixed)
-
-		new_statement = "Please verify that your {}.".format(statement)
-	
+	try:
+		statement_verb_first = statements[0] # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+	except:
+		print(sentence, "verb not found")
+		statement_verb_first = ''
+		verbNotFound = True
+	if possessiveNotFound and verbNotFound:
+		statement = sentence
+		new_statement = sentence
 	else:
-		statement = statement_verb_first
-		new_statement = "Have you {}?".format(statement)
+		if len(statement_possessive_first) > len (statement_verb_first):
 
-	# Get nouns
+			statement = statement_possessive_first # assuming there's only one statements (TODO: lol, this isn't getting fixed)
+
+			new_statement = "Please verify that your {}.".format(statement)
+		
+		else:
+			statement = statement_verb_first
+			new_statement = "Have you {}?".format(statement)
+
+		# Get nouns
 
 	words = nltk.word_tokenize(statement)
 	tagged_words = nltk.pos_tag(words)

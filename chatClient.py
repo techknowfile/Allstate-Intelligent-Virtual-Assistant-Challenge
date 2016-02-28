@@ -22,7 +22,7 @@ import subprocess
 ###################################################################################################
 #                                          SETTINGS
 ###################################################################################################
-slowResponse = True # Adds a delays before bot responds
+slowResponse = False # Adds a delays before bot responds
 RESPONSE_TIME = 1.5
 kbArticleID = -1
 
@@ -79,6 +79,8 @@ class Brain:
 			return kbKey
 
 	def assistUser(self, brainEntry):
+		issueResolved = False
+		resolveStepEncountered = False
 		for step in brainEntry.steps:
 
 			######################################################
@@ -108,9 +110,10 @@ class Brain:
 			######################################################
 			elif step[1] == 'resolve':
 				tellUser(step[0])
+				resolveStepEncountered = True
 
 			######################################################
-			# >>                 Resolve issue
+			# >>                 Yes No Question
 			######################################################
 			elif step[1] == 'yes_no':
 				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
@@ -122,7 +125,10 @@ class Brain:
 						tellUser(BOT_SOLVED_PROBLEM_LIKE_A_BAU5)
 					else:
 						tellUser(CONTACT_CUSTOMER_SUPPORT)
-
+				elif resolveStepEncountered == True:
+					if response:
+						tellUser(BOT_SOLVED_PROBLEM_LIKE_A_BAU5)
+						break
 
 			######################################################
 			# >>         Updating domain knowledge
@@ -205,6 +211,29 @@ class Brain:
 				except:
 					print("ERROR: {} or {} not found in boolKnowledgeDict".format(key0, key1))
 
+			elif step[1] == 'if_yes_no_yes_no':
+				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
+				response = (True if response[0] == 'Yes' else False)
+				brainEntry.boolKnowledgeDict[step[3]] = response
+				if response:
+					response = yesNoQuestion(step[2])
+					response = (True if response[0] == 'Yes' else False)
+					step_index = brainEntry.steps.index(step)
+					if step_index is len(brainEntry.steps)-1:
+							if response:
+								tellUser(BOT_SOLVED_PROBLEM_LIKE_A_BAU5)
+							else:
+								tellUser(CONTACT_CUSTOMER_SUPPORT)
+
+				else:
+					print("ELSE")
+					step_index = brainEntry.steps.index(step)
+					if step_index is len(brainEntry.steps)-1:
+						print("LAST")
+						tellUser(CONTACT_CUSTOMER_SUPPORT)
+						break
+					else:
+						print("NOT LAST", step_index, len(brainEntry.steps))
 
 class BrainEntry:
 	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
