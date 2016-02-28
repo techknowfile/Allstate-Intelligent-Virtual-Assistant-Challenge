@@ -1,5 +1,6 @@
 #!python3
 import os
+import sys
 import glob
 import re
 import nltk
@@ -14,6 +15,12 @@ from nltk.stem.porter import PorterStemmer
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
+
+from colorama import init
+init(strip=not sys.stdout.isatty()) # strip colors if stdout is redirected
+from termcolor import cprint 
+from pyfiglet import figlet_format
+
 # from brain import Brain, BrainEntry
 
 ###################################################################################################
@@ -95,6 +102,9 @@ class BrainEntry:
 
 
 def main():
+	os.system("cls")
+	cprint(figlet_format('Brain Builder', font='computer'),
+       'white')
 	# Get dictionary of KB dictionary files
 	# This just contains the text from each section broken up in
 	# an accessible manner
@@ -106,9 +116,11 @@ def main():
 	# needed for the brain to help with issues
 	##########################################
 	brainEntryDict = {}
+	print(" System: Mining for knowledge...")
 	for key, value in kbDict.items():
-		aBrainEntry = processResolution(kbDict[key]['resolution'])
+		aBrainEntry = processResolution(kbDict[key]['resolution'], kbDict[key]['title'], key)
 		brainEntryDict[key] = aBrainEntry
+	cprint("    >> Knowledge mining complete!", 'cyan')
 
 	#########################################
 	# Generate a dictionary storing the words
@@ -117,20 +129,27 @@ def main():
 	# Needed by the Brain to match the user's
 	# input to the correct KB article
 	#########################################
+	cprint("\n System: Preparing intellect for future feature extraction...", 'green')
 	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues', 'causes'])
-
+	cprint("    >> Preparations complete!", 'cyan')
 	#########################################
 	# Build the Brain
 	#########################################
+	print("\n System: Beginning Brain fabrication...")
 	myBrain = Brain(kbWordsDict, brainEntryDict)
-
+	cprint("    >> Brain complete!", 'cyan')
 	#########################################
 	# Pickle the Brain to be loaded into 
 	# a chat client
 	#########################################
+	print("\n System: Pickling the brain...")
 	brain_file = open("picklejar/brain.pickle", "wb")
 	pickle.dump(myBrain, brain_file)
 	brain_file.close()
+	cprint("    >> Brain pickled!", 'white')
+	cprint("    >> Pickled brain added to picklejar!", 'white')
+	cprint("    >> Brain pickling process complete!", 'cyan')
+	print("\n System: Process complete. Goodbye.")
 
 def getKBWordsDict(kbDocuments, focusList):
 	kbWordsDict = OrderedDict()
@@ -267,7 +286,7 @@ def getKBDict():
 
 	return kbDict
 
-def processResolution(steps):
+def processResolution(steps, title, key):
 	knowledge_dict = {}
 	bool_dict = {}
 	steps_list = []
@@ -433,10 +452,9 @@ def processResolution(steps):
 				#######################################
 				# Create if question
 				#######################################
-				ifChunkGram = r"""Chunk: (?:<VBZ>){<.*>*}"""
+				ifChunkGram = r"""Chunk: (?:<VBZ|VB.*>){<.*>*}"""
 				ifChunkParser = nltk.RegexpParser(ifChunkGram)
 				chunked = ifChunkParser.parse(tagged_words)
-
 				statement_fragments = extractChunk(chunked)
 				statement_fragment = statement_fragments[0].replace('their', 'your')
 
@@ -451,12 +469,15 @@ def processResolution(steps):
 				knowledge_dict[new_domain_var] = []
 
 				####################################
-				# Determin type of Complicated If
+				# Determine type of Complicated If
 				####################################
 				statement = if_statements[1].strip()
 				words = nltk.word_tokenize(statement)
 				firstWord = words[0]
 				if firstWord.lower() == 'verify':
+					#############################
+					# if_yes_no_yes_no
+					#############################
 					returnList = yesNoStepParser(statement)
 					
 					# Set step_list variables
@@ -467,7 +488,14 @@ def processResolution(steps):
 					# Add new bool to dictionary
 					bool_dict[new_bool_var] = None
 
-				# if firstWord.
+				if firstWord.lower() == 'update':
+					###############################################
+					# if_yes_no_conditional_update_domain_knowledge
+					###############################################
+					step_type = 'if_yes_no_conditional_update_domain_knowledge'
+					if_question = "Would you like to update your {}".format(nouns[-1])
+
+
 
 			elif keyed_noun_bool_exists:
 				#####################################
@@ -509,17 +537,19 @@ def processResolution(steps):
 		if key_noun_pair_tuple:
 			step_list.append(key_noun_pair_tuple)
 
-		print(step_list)
+		# print(step_list)
 
 		# TODO: Append rest of items
 		# Append step_list to steps_list
 
 		if step_list:
 			steps_list.append(step_list)
-	print("KD:", knowledge_dict)
-	print("BD:", bool_dict)
+			# cprint("    >> {}".format(step_list), 'white')
+	# print("KD:", knowledge_dict)
+	# print("BD:", bool_dict)
 
 	thisBrainEntry = BrainEntry(knowledge_dict, bool_dict, steps_list, None)
+	cprint("    >> Knowledge Acquired: {} - {}".format(key, title), 'white')
 	return thisBrainEntry
 
 
@@ -560,8 +590,14 @@ def updateStepParser(sentence):
 	noun_key = noun.replace(" ", "_")
 	verb_entities = getVerbs(tagged_words)
 
-
-	verb = getPastParticiple(verb_entities[0].lower())
+	if verb_entities:
+		try:
+			verb = getPastParticiple(verb_entities[0].lower())
+		except:
+			cprint('    >> ERROR: Past participle generation unsuccessful for {}.'.format(verb_entities[0]), red)
+	else:
+		cprint('    >> ERROR: No verbs found.'.format(verb_entities[0]), red)
+		verb = 'FAIL'
 
 	new_statement = 'What would you like your new {} to be?'.format(noun)
 	returnList = [new_statement, noun_key]
@@ -670,7 +706,7 @@ def addDomainStepParser(sentence):
 
 	noun_key = noun_entity.replace(" ", "_")
 
-	new_statement = "What is your {}.".format(statement)
+	new_statement = "What is your {}?".format(statement)
 	
 	returnList = [new_statement, noun_key]
 	return returnList

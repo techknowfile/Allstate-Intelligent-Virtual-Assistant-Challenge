@@ -22,14 +22,14 @@ import subprocess
 ###################################################################################################
 #                                          SETTINGS
 ###################################################################################################
-slowResponse = False # Adds a delays before bot responds
+slowResponse = True # Adds a delays before bot responds
 RESPONSE_TIME = 1.5
 kbArticleID = -1
 
 ###################################################################################################
 #                                         CONSTANTS
 ###################################################################################################
-BOTNAME = "Red Queen (TSR)"
+BOTNAME = "Alice (TSR)"
 DEFAULT_USERNAME = "User"
 NAME_COLUMN_WIDTH = 20
 CONTACT_CUSTOMER_SUPPORT = "I'm so sorry, it appears that this issue may need to be resolved over the phone. Please contact our customer support at (555) 123-1337"
@@ -81,6 +81,7 @@ class Brain:
 	def assistUser(self, brainEntry):
 		issueResolved = False
 		resolveStepEncountered = False
+		domainTypeUpdatedWithOnlyOneEntry = []
 		for step in brainEntry.steps:
 
 			######################################################
@@ -95,7 +96,7 @@ class Brain:
 			######################################################
 			elif step[1] == 'confirm':
 				for key, value in brainEntry.domainKnowledgeDict.items():
-					if len(value) == 1:
+					if len(value) == 1 and not domainTypeUpdatedWithOnlyOneEntry:
 						# Do nothing? This currently only occurs if the user chose not to update the value, so it shouldn't be relevant.
 						pass
 						# tellUser("Your {} has been updated to {}".format(key, value[0]))
@@ -103,8 +104,9 @@ class Brain:
 						if value[len(value)-2] != value[len(value)-1]: # make sure last two values aren't identical...
 							tellUser("Your {} has been updated from {} to {}".format(key.replace("_", " "), value[len(value)-2], value[len(value)-1]))
 						else:
-							tellUser("Your {} was not modified.".format(key.replace("_", " ")))
-
+							tellUser("Your {} has been updated to {}.".format(key.replace("_", " "), value[-1]))
+					elif  len(value) == 1 and key in domainTypeUpdatedWithOnlyOneEntry:
+						tellUser("Your {} has been updated to {}.".format(key.replace("_", " "), value[-1]))
 			######################################################
 			# >>                 Resolve issue
 			######################################################
@@ -235,6 +237,21 @@ class Brain:
 					else:
 						print("NOT LAST", step_index, len(brainEntry.steps))
 
+			elif step[1] == 'if_yes_no_conditional_update_domain_knowledge':
+				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
+				response = (True if response[0] == 'Yes' else False)
+				brainEntry.boolKnowledgeDict[step[3]] = response
+				if response:
+					try:
+						tellUser("What would you like your new {} to be?".format(step[3].replace("_", " ")))
+						brainEntry.domainKnowledgeDict[step[3]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+						domainTypeUpdatedWithOnlyOneEntry.append(step[3])
+					except Exception as e:
+						print(e)
+						print("Step: {}, DKD: {}".format(step, brainEntry.domainKnowledgeDict))
+						print("ERROR: Something appears to be wrong with a 'if_yes_no_conditional_update_domain_knowledge' step or the process for assisting the user with that step.\nIf you are seeing this, I have failed you. I apologize for the inconvenience.")
+
+					
 class BrainEntry:
 	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps):
 		self.domainKnowledgeDict = domainKnowledgeDict
@@ -461,7 +478,6 @@ def getOrAlsoChoice(input_features, feature_set_0, feature_set_1):
 		feature_ngram = feature_set_1 # if they say 'x' in 'or also x', return "both" (support single words and bigrams only.. )
 		both_features.append(feature_ngram)
 		if feature in both_features:
-			print(feature, "matched")
 			return True
 
 	# default to only the first option		

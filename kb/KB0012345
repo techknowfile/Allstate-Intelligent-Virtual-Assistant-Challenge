@@ -1,0 +1,18 @@
+KB0012345: change password
+
+Environment
+Customer MyAccount Web Application
+
+Issue/Error
+- Customer requests a change to their password.
+
+Cause
+- Customer forgot their password.
+- Customer is locked out of their account.
+
+Resolution/Workaround
+1. Verify the customer’s account number.
+3. Verify the customer's current password.
+4. Update their password.
+5. If the customer would like to update their email address as well, update their email address.
+6. Confirm the customer’s new password and, if applicable, their email address
