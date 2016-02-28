@@ -12,4 +12,5 @@ Module dependencies:
 - colorama
 - termcolor
 - pyfiglet
+
 Note: If you have trouble installing any of the packages, try installing via wheel file or superpack!
