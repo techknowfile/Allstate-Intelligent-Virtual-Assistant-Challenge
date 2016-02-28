@@ -19,21 +19,30 @@ import textwrap
 
 import subprocess
 
+from colorama import init
+init(strip=not sys.stdout.isatty()) # strip colors if stdout is redirected
+from termcolor import cprint, colored
+from pyfiglet import figlet_format
+
 ###################################################################################################
 #                                          SETTINGS
 ###################################################################################################
 slowResponse = True # Adds a delays before bot responds
 RESPONSE_TIME = 1.5
 kbArticleID = -1
+openingSequence = True
 
 ###################################################################################################
 #                                         CONSTANTS
 ###################################################################################################
-BOTNAME = "Alice (TSR)"
+CHAT_CLIENT_NAME = "Smart Support"
+BOTNAME = "Sarah Bellum (TSR)"
 DEFAULT_USERNAME = "User"
+SYSTEM = "System"
 NAME_COLUMN_WIDTH = 20
 CONTACT_CUSTOMER_SUPPORT = "I'm so sorry, it appears that this issue may need to be resolved over the phone. Please contact our customer support at (555) 123-1337"
 BOT_SOLVED_PROBLEM_LIKE_A_BAU5 = "Awesome!"
+BORDER = "======================================================================"
 
 ###################################################################################################
 #                                         CLASS DEFINITIONS
@@ -238,14 +247,10 @@ class Brain:
 							else:
 								tellUser(CONTACT_CUSTOMER_SUPPORT)
 				else:
-					print("ELSE")
 					step_index = brainEntry.steps.index(step)
 					if step_index is len(brainEntry.steps)-1:
-						print("LAST")
 						tellUser(CONTACT_CUSTOMER_SUPPORT)
 						break
-					else:
-						print("NOT LAST", step_index, len(brainEntry.steps))
 
 			######################################################
 			# >>          COMPLICATED YES-NO ('UPDATE')
@@ -282,16 +287,16 @@ class BrainEntry:
 # instances of featureClassificationObject
 ###################################################################################################
 class featureClassificationObject:
-    def __init__(self, word_features, classifier):
-        self.word_features = word_features
-        self.classifier = classifier
-    def find_features(self, post):
-        words = set(post)
-        features = {}
-        for w in self.word_features:
-            if len(w) > 1:
-                features[w] = (w in words)
-        return features
+	def __init__(self, word_features, classifier):
+		self.word_features = word_features
+		self.classifier = classifier
+	def find_features(self, post):
+		words = set(post)
+		features = {}
+		for w in self.word_features:
+			if len(w) > 1:
+				features[w] = (w in words)
+		return features
 
 
 
@@ -346,8 +351,11 @@ def main():
 	''' TODO: Docstring'''
 
 	allIssuesResolved = False
-	clearScreen();
-	getUsername();
+	clearScreen()
+	printHeader()
+	getUsername()
+	if openingSequence:
+		startingSequence()
 	brainEntryFound = False # Deprecated TODO: Delete
 	isFirstIssue = True
 	newKBKey = None # Used to determine if the user has another issue and provides it with their 'yes' response, as opposed to just saying 'yes'
@@ -432,15 +440,16 @@ def tellUser(response):
 	# TODO: Test on linux/OSX.
 	# curses module would be a better option; however, it doesn't support Windows.
 
-	sys.stdout.write("\r%20s" % username + ": ") #display the user input line in the console.
+	sys.stdout.write(colored("\r%20s" % username + ": ")) #display the user input line in the console.
 	if slowResponse == True:
 		time.sleep(RESPONSE_TIME)
-	sys.stdout.write("\r" + textwrap.fill("{:>20}: {:<60}\n".format(BOTNAME, response), 70, subsequent_indent="                      ") + "\n") # Replace the "user input line" with the bots' response
+	sys.stdout.write(colored("\r" + textwrap.fill("{:>20}: {:<60}\n".format(BOTNAME, response), 70, subsequent_indent="                      ") + "\n", 'cyan')) # Replace the "user input line" with the bots' response
 
 	# print(BOTNAME + ":", response)
 
 def tellBot():
-	return input("%20s: "%(username))
+	sys.stdout.write(colored("%20s: "%(username)))
+	return input()
 
 def clearScreen():
 	''' Function to clear current screen based on current OS '''
@@ -468,12 +477,15 @@ def getBigrams(userInput):
 
 def getUsername():
 	global username
-	username = input('''Welcome to TeamDudley\'s Virtual Assistant!
-
-To get started, simply enter your name: ''')
+	sys.stdout.write(colored("%20s: "% "Enter your name"))
+	username = input()
 	if username == '':
 		username = DEFAULT_USERNAME
-	clearScreen();
+	elif len(username) > 19:
+		username = username[:19]
+	if openingSequence:
+		delay_print(' Thank you, {}. One moment, please.'.format(username), 0.1)
+	cprint('\n{}'.format(BORDER), 'white')
 
 def yesNoQuestion(question):
 	tellUser(question)
@@ -524,6 +536,30 @@ def getOrChoice(input_features, feature_set_0, feature_set_1):
 
 	# default to only the first option		
 	return False
+
+def printHeader():
+	cprint(figlet_format(CHAT_CLIENT_NAME, font='small'), 'white')
+	cprint(BORDER, 'white')
+
+def startingSequence():
+	delay_print(" . . . ", 0.5, 'Loading Brain')
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Loading Brain . . . COMPLETE"))
+	sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
+	sys.stdout.flush()
+	time.sleep(0.5)
+	delay_print(" . . . ", 0.5, 'Artifical Intelligence')
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Artifical Intelligence . . . ONLINE"))
+	sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
+	sys.stdout.flush()
+	cprint(BORDER, 'white')
+def delay_print(s, delay, message=''):
+
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", message))
+	for c in s:
+		sys.stdout.write(colored('%s' % sys_string + c, 'yellow'))
+		sys_string += c
+		sys.stdout.flush()
+		time.sleep(delay)
 
 # END OF DOCUMENT
 # Load all functions, then run the main function (removes need for forward declarations,
