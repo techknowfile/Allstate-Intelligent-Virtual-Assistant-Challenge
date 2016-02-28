@@ -183,9 +183,13 @@ class Brain:
 				except:
 					print("ERROR: {} or {} not found in boolKnowledgeDict".format(key0, key1))
 
+			######################################################
+			# >>   Setting boolean domain knowledge
+			# >>      OR (supports one, the other, or both)
+			######################################################
 			elif step[1] == 'or_bool':
 				#######################################
-				# Ask user 'x only or also y' question
+				# Ask user 'x or y' question
 				#######################################
 
 				# Get bool keys. These will be referenced later on by a conditional_update_domain_knowledge step
@@ -213,6 +217,13 @@ class Brain:
 				except:
 					print("ERROR: {} or {} not found in boolKnowledgeDict".format(key0, key1))
 
+			######################################################
+			# >>          COMPLICATED YES-NO ('Verify')
+			# >>   Ask yes no question about subject we haven't
+			# >>   created a domainKnowledgeDictionary entry on 
+			# >>   yet, then ask another yes-no question if they
+			# >>   say yes.
+			######################################################
 			elif step[1] == 'if_yes_no_yes_no':
 				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
 				response = (True if response[0] == 'Yes' else False)
@@ -226,7 +237,6 @@ class Brain:
 								tellUser(BOT_SOLVED_PROBLEM_LIKE_A_BAU5)
 							else:
 								tellUser(CONTACT_CUSTOMER_SUPPORT)
-
 				else:
 					print("ELSE")
 					step_index = brainEntry.steps.index(step)
@@ -237,6 +247,13 @@ class Brain:
 					else:
 						print("NOT LAST", step_index, len(brainEntry.steps))
 
+			######################################################
+			# >>          COMPLICATED YES-NO ('UPDATE')
+			# >>   Ask yes no question about subject we haven't
+			# >>   created a domainKnowledgeDictionary entry on 
+			# >>   yet, then ask for and retrieve new domain 
+			# >>   knowledge.
+			######################################################
 			elif step[1] == 'if_yes_no_conditional_update_domain_knowledge':
 				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
 				response = (True if response[0] == 'Yes' else False)

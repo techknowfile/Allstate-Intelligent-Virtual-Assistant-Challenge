@@ -37,59 +37,6 @@ class Brain:
 		self.kbWordsDict = kbWordsDict
 		self.brainEntryDict = brainEntryDict
 
-	#function takes the tokens and applies PorterStemmer
-	def stemTokens(self, tokens):
-		#stemmer object used to stem the tokens
-		stemmer = PorterStemmer()
-		stemmedTokens = []
-		for token in tokens:
-			stemmedTokens.append(stemmer.stem(token))
-		return stemmedTokens
-
-	#Takes the text and creates tokens
-	def tokenize(self, text):
-		tokens = nltk.word_tokenize(text)
-		stems = self.stemTokens(tokens)
-		return stems
-
-	def getKBKey(self, userInput):
-		self.kbWordsDict['input'] = userInput
-
-		#apply tfidf using the tokenize function made in line 24 and not including 'useless' words
-		vectorizer = TfidfVectorizer(tokenizer=self.tokenize , stop_words='english', use_idf=True, ngram_range=(1, 3))
-		tfidf = vectorizer.fit_transform(self.kbWordsDict.values())
-		cosine_similarities = linear_kernel(tfidf[len(self.kbWordsDict)-1], tfidf).flatten()
-		match = cosine_similarities.argsort()[:-3:-1]
-		print(cosine_similarities)
-		kbKey = list(self.kbWordsDict.keys())[match[1]]
-		print(kbKey)
-		return kbKey
-
-	def assistUser(self, brainEntry):
-		for step in brainEntry.steps:
-			if step[1] == 'add_domain_knowledge':
-				tellUser(step[0]) # Ask user for domain knowledge
-				try:
-					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
-				except:
-					tellUser("Oops. My dictionary value for {} is missing. I fear our chat session may end in disaster...").format(step[2])
-			if step[1] == 'confirm':
-				for key, value in brainEntry.domainKnowledgeDict.items():
-					if len(value) == 1:
-						tellUser("Your {} has been updated to {}".format(key, value[0]))
-					elif len(value) == 2:
-						tellUser("Your {} has been updated from {} to {}".format(key, value[0], value[1]))
-
-			if step[1] == 'update_domain_knowledge':
-				tellUser(step[0]) # Ask user for domain knowledge
-				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
-
-			if step[1] == 'conditional_update_domain_knowledge':
-				# Check to see that the boolean flag has been set to True. If so, run conditional step...
-				if boolKnowledgeDict.get('or_also_bool') == True:
-					tellUser(step[0]) # Ask user for domain knowledge
-					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
-
 
 class BrainEntry:
 	def __init__(self, domainKnowledgeDict, boolKnowledgeDict, steps, loop_step):
@@ -103,8 +50,19 @@ class BrainEntry:
 
 def main():
 	os.system("cls")
+	cprint("""                    _---~~(~~-_.
+                  _{        )   )
+                ,   ) -~~- ( ,-' )_
+               (  `-,_..`., )-- '_,)
+              ( ` _)  (  -~( -_ `,  }
+              (_-  _  ~_-~~~~`,  ,' )
+                `~ -^(    __;-,((()))
+                      ~~~~ {_ -_(())
+                             `\  }
+                               \{ \}    """, 'cyan')
 	cprint(figlet_format('Brain Builder', font='computer'),
        'white')
+
 	# Get dictionary of KB dictionary files
 	# This just contains the text from each section broken up in
 	# an accessible manner
@@ -116,7 +74,9 @@ def main():
 	# needed for the brain to help with issues
 	##########################################
 	brainEntryDict = {}
-	print(" System: Mining for knowledge...")
+	# cprint('                                 by Andy Dudley and Joanna Zurawek', 'cyan')
+	cprint('------------------------------------------------------------------', 'white')
+	cprint(" System: Mining for knowledge...", 'green')
 	for key, value in kbDict.items():
 		aBrainEntry = processResolution(kbDict[key]['resolution'], kbDict[key]['title'], key)
 		brainEntryDict[key] = aBrainEntry
@@ -135,21 +95,23 @@ def main():
 	#########################################
 	# Build the Brain
 	#########################################
-	print("\n System: Beginning Brain fabrication...")
+	cprint("\n System: Beginning Brain fabrication...", 'green')
 	myBrain = Brain(kbWordsDict, brainEntryDict)
-	cprint("    >> Brain complete!", 'cyan')
+	cprint("    >> Brain ready!", 'cyan')
 	#########################################
 	# Pickle the Brain to be loaded into 
 	# a chat client
 	#########################################
-	print("\n System: Pickling the brain...")
+	cprint("\n System: Pickling the brain...", 'green')
 	brain_file = open("picklejar/brain.pickle", "wb")
 	pickle.dump(myBrain, brain_file)
 	brain_file.close()
 	cprint("    >> Brain pickled!", 'white')
 	cprint("    >> Pickled brain added to picklejar!", 'white')
 	cprint("    >> Brain pickling process complete!", 'cyan')
-	print("\n System: Process complete. Goodbye.")
+	cprint("\n System: Process complete. Goodbye.", 'green')
+	cprint('------------------------------------------------------------------', 'white')
+
 
 def getKBWordsDict(kbDocuments, focusList):
 	kbWordsDict = OrderedDict()
