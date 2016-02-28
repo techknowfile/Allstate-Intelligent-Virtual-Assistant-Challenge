@@ -36,7 +36,7 @@ openingSequence = True
 #                                         CONSTANTS
 ###################################################################################################
 CHAT_CLIENT_NAME = "Smart Support"
-BOTNAME = "Sarah Bellum (TSR)"
+BOTNAME = "Sarah Bellum"
 DEFAULT_USERNAME = "User"
 SYSTEM = "System"
 NAME_COLUMN_WIDTH = 20
@@ -304,9 +304,12 @@ class featureClassificationObject:
 ###################################################################################################
 #                                          HER BRAIN
 ###################################################################################################
-brain_file = open('picklejar/brain.pickle', 'rb')
-brain = pickle.load(brain_file)
-brain_file.close()
+try:
+	brain_file = open('picklejar/brain.pickle', 'rb')
+	brain = pickle.load(brain_file)
+	brain_file.close()
+except:
+	brain = None
 ###################################################################################################
 
 
@@ -543,12 +546,20 @@ def printHeader():
 
 def startingSequence():
 	delay_print(" . . . ", 0.5, 'Loading Brain')
-	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Loading Brain . . . COMPLETE"))
-	sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
-	sys.stdout.flush()
-	time.sleep(0.5)
-	delay_print(" . . . ", 0.5, 'Artifical Intelligence')
-	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Artifical Intelligence . . . ONLINE"))
+	if brain:
+		sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Loading Brain . . . COMPLETE"))
+		sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
+		sys.stdout.flush()
+		time.sleep(0.5)
+	else:
+		sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Loading Brain . . . FAILED"))
+		sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
+		sys_string = "\r" + textwrap.fill("{:>20}: {}".format("ERROR", "Pickled brain not found in picklejar. Run brainBuilder.py, then try again."), 70, subsequent_indent="                      ")
+		sys.stdout.write(colored('%s\n' % sys_string, 'red'))
+		sys.exit(0)
+
+	delay_print(" . . . . ", 0.5, 'Starting AI')
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", "Starting AI . . . . ONLINE"))
 	sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
 	sys.stdout.flush()
 	cprint(BORDER, 'white')
