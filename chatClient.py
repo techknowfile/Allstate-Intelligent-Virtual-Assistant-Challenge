@@ -437,7 +437,6 @@ def main():
 			allIssuesResolved = False
 			newKBKey = brain.getKBKey(needsMoreHelp[1])
 
-			# TODO: Should add something that determines if they gave the next issue immediately instead of just giving a 'yes' answer
 		else:
 			allIssuesResolved = True
 		
@@ -462,7 +461,7 @@ def determineIssue(isFirstIssue):
 
 	# keywords = parseInput(userInput) # parse keywords from user input
 	
-	kbKey = brain.getKBKey(userInput) # TODO: John, hook up with actual feature set needed to perform cosine similarity
+	kbKey = brain.getKBKey(userInput)
 
 	# Deprecated from initial stub
 	# matched_keywords = [(keyword, kbKeywordDict.get(keyword)) for keyword in keywords if keyword in kbKeywordDict]
@@ -477,7 +476,6 @@ def determineIssue(isFirstIssue):
 
 		# Return the key to the KB article
 	return kbKey
-	
 
 
 def tellUser(response):
@@ -567,7 +565,6 @@ def getOrChoice(input_features, feature_set_0, feature_set_1):
 
 	for feature in input_features:
 		both_features = ['both', 'yes'] #if they any of these, then return "both"
-		# TODO: add the possibility of them saying 'feature 1 AND feature 2'
 		if feature in both_features:
 			return 2
 
