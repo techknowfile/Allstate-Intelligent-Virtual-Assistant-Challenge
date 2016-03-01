@@ -27,10 +27,10 @@ from pyfiglet import figlet_format
 ###################################################################################################
 #                                          SETTINGS
 ###################################################################################################
-slowResponse = True # Adds a delays before bot responds
+slowResponse = False # Adds a delays before bot responds
 RESPONSE_TIME = 1.5
 kbArticleID = -1
-openingSequence = True
+openingSequence = False
 
 ###################################################################################################
 #                                         CONSTANTS
@@ -98,8 +98,21 @@ class Brain:
 			######################################################
 			if step[1] == 'add_domain_knowledge':
 				tellUser(step[0]) # Ask user for domain knowledge
-				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
-
+				try:
+					brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+				except:
+					printError("{} not found in my domain knowledge.".format(step[2]))
+					printSystem("Maybe I can help. Attempting to add {} to {}'s knowledge bank".format(step[2], BOTNAME))
+					try:
+						brainEntry.domainKnowledgeDict[step[2]] = []
+						brainEntry.domainKnowledgeDict[step[2]].append(userInput)
+						domainTypeUpdatedWithOnlyOneEntry.append(step[2])
+						printSystem("Done. You should be alright now, {}.".format(BOTNAME))
+						tellUser("Thank you, System! Sorry about that, {}. Now, where were we?".format(username))
+						tellUser("Oh yes...")
+					except:
+						printError("{} still not found in my domain knowledge.".format(step[2]))
+						printError("{} is likely to crash soon.".format(BOTNAME))
 			######################################################
 			# >>    Confirming the acquired domain knowledge
 			######################################################
@@ -129,7 +142,21 @@ class Brain:
 			elif step[1] == 'yes_no':
 				response = yesNoQuestion(step[0]) # Ask the use a yes no Question
 				response = (True if response[0] == 'Yes' else False)
-				brainEntry.boolKnowledgeDict[step[2]] = response
+				try:
+					brainEntry.boolKnowledgeDict[step[2]] = response
+				except:
+					printError("{} not found in my domain knowledge.".format(step[2]))
+					printSystem("Maybe I can help. Attempting to add {} to {}'s knowledge bank".format(step[2], BOTNAME))
+					try:
+						brainEntry.domainKnowledgeDict[step[2]] = []
+						brainEntry.domainKnowledgeDict[step[2]].append(userInput)
+						domainTypeUpdatedWithOnlyOneEntry.append(step[2])
+						printSystem("Done. You should be alright now, {}.".format(BOTNAME))
+						tellUser("Thank you, System! Sorry about that, {}. Now, where were we?".format(username))
+						tellUser("Oh yes...")
+					except:
+						printError("{} still not found in my domain knowledge.".format(step[2]))
+						printError("{} is likely to crash soon.".format(BOTNAME))
 				step_index = brainEntry.steps.index(step)
 				if step_index is len(brainEntry.steps)-1:
 					if response:
