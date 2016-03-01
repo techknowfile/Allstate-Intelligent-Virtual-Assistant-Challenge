@@ -90,7 +90,7 @@ def main():
 	# input to the correct KB article
 	#########################################
 	cprint("\n System: Preparing intellect for future feature extraction...", 'green')
-	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues', 'causes'])
+	kbWordsDict = getKBWordsDict(kbDict, ['title', 'issues'])
 	cprint("    >> Preparations complete!", 'cyan')
 	#########################################
 	# Build the Brain
@@ -721,7 +721,7 @@ def yesNoStepParser(sentence):
 		
 		else:
 			statement = statement_verb_first
-			new_statement = "Have you {}?".format(statement)
+			new_statement = "Have you {}?".format(statement.replace('their', 'your'))
 
 		# Get nouns
 

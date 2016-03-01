@@ -146,7 +146,23 @@ class Brain:
 			######################################################
 			elif step[1] == 'update_domain_knowledge':
 				tellUser(step[0]) # Ask user for domain knowledge
-				brainEntry.domainKnowledgeDict[step[2]].append(tellBot()) # Append domain knowledge to list for that specific domain knowledge (retains values)
+				try:
+					userInput = tellBot()
+					brainEntry.domainKnowledgeDict[step[2]].append(userInput) # Append domain knowledge to list for that specific domain knowledge (retains values)
+				except:
+					printError("{} not found in my domain knowledge.".format(step[2]))
+					printSystem("Maybe I can help. Attempting to add {} to {}'s knowledge bank".format(step[2], BOTNAME))
+					try:
+						brainEntry.domainKnowledgeDict[step[2]] = []
+						brainEntry.domainKnowledgeDict[step[2]].append(userInput)
+						domainTypeUpdatedWithOnlyOneEntry.append(step[2])
+						printSystem("Done. You should be alright now, {}.".format(BOTNAME))
+						tellUser("Thank you, System! Sorry about that, {}. Now, where were we?".format(username))
+						tellUser("Oh yes...")
+					except:
+						printError("{} still not found in my domain knowledge.".format(step[2]))
+						printError("{} is likely to crash soon.".format(BOTNAME))
+
 
 			######################################################
 			# >>   Conditionally updating domain knowledge
@@ -517,9 +533,9 @@ def getOrAlsoChoice(input_features, feature_set_0, feature_set_1):
 
 def getOrChoice(input_features, feature_set_0, feature_set_1):
 	if any(x in input_features for x in ('only', 'just')): # these words indicate that the user only wants the first option, not both.
-		if feature_set_0 in x:
+		if feature_set_0 in input_features:
 			return 0
-		elif feature_set_1 in x:
+		elif feature_set_1 in input_features:
 			return 1
 
 	for feature in input_features:
@@ -564,14 +580,43 @@ def startingSequence():
 	sys.stdout.flush()
 	cprint(BORDER, 'white')
 def delay_print(s, delay, message=''):
-
-	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", message))
+	# Use only for startingSequence
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", message), 70, subsequent_indent="                      ")
 	for c in s:
 		sys.stdout.write(colored('%s' % sys_string + c, 'yellow'))
 		sys_string += c
 		sys.stdout.flush()
 		time.sleep(delay)
 
+def delay_print_system(s, delay):
+	# Similar to delay_print(), but implemented to extend its functionality. 
+	growingMessage = ''
+	for c in s:
+		sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", growingMessage), 70, subsequent_indent="                      ")
+		sys.stdout.write(colored('%s' % sys_string + c, 'yellow'))
+		growingMessage += c
+		sys.stdout.flush()
+		time.sleep(delay)
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", growingMessage), 70, subsequent_indent="                      ")
+	sys.stdout.write(colored('%s\n' % sys_string + c, 'yellow'))
+
+def printError(msg):
+	sys.stdout.write(colored("\r%20s" % username + ": ")) #display the user input line in the console.
+	if slowResponse == True:
+		time.sleep(RESPONSE_TIME)
+	#sys.stdout.write(colored("\r" + textwrap.fill("{:>20}: {:<60}\n".format(BOTNAME, response), 70, subsequent_indent="                      ") + "\n", 'cyan')) # Replace the "user input line" with the bots' response
+
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("ERROR", msg), 70, subsequent_indent="                      ")
+	sys.stdout.write(colored('%s\n' % sys_string, 'red'))
+def printSystem(msg):
+	sys.stdout.write(colored("\r%20s" % username + ": ")) #display the user input line in the console.
+	if slowResponse == True:
+		time.sleep(RESPONSE_TIME)
+	# delay_print_system(msg, 0.1)
+	sys_string = "\r" + textwrap.fill("{:>20}: {}".format("System", msg), 70, subsequent_indent="                      ")
+	sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
+	
+	#sys.stdout.write(colored('%s\n' % sys_string, 'yellow'))
 # END OF DOCUMENT
 # Load all functions, then run the main function (removes need for forward declarations,
 # which don't exist in Python)
