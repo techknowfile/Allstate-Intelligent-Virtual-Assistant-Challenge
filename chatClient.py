@@ -27,10 +27,10 @@ from pyfiglet import figlet_format
 ###################################################################################################
 #                                          SETTINGS
 ###################################################################################################
-slowResponse = False # Adds a delays before bot responds
+slowResponse = True # Adds a delays before bot responds
 RESPONSE_TIME = 1.5
 kbArticleID = -1
-openingSequence = False
+openingSequence = True
 
 ###################################################################################################
 #                                         CONSTANTS
