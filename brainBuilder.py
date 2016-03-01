@@ -418,13 +418,22 @@ def processResolution(steps, title, key):
 				ifChunkParser = nltk.RegexpParser(ifChunkGram)
 				chunked = ifChunkParser.parse(tagged_words)
 				statement_fragments = extractChunk(chunked)
-				statement_fragment = statement_fragments[0].replace('their', 'your')
+				try:
+					statement_fragment = statement_fragments[0].replace('their', 'your')
+				except:
+					statement_fragment = step
+					cprint('    >> WARNING: Verb not found.', 'yellow')
 
 				modStep = "Do you have {}?".format(statement_fragment)
 
 				# Set dictionary vars
-				new_bool_var = keyed_noun_bools[-1]
-				new_domain_var = keyed_nouns[-1]
+				try:
+					new_bool_var = keyed_noun_bools[-1]
+					new_domain_var = keyed_nouns[-1]
+				except:
+					cprint('    >> WARNING: noun_bools or keys_nouns returns empty', 'yellow')
+					new_bool_var = 'error_bool'
+					new_domain_var = 'error_noun'
 
 				# Add to dictionaries
 				bool_dict[new_bool_var] = None
@@ -433,7 +442,12 @@ def processResolution(steps, title, key):
 				####################################
 				# Determine type of Complicated If
 				####################################
-				statement = if_statements[1].strip()
+				try:
+					statement = if_statements[1].strip()
+				except:
+					cprint('    >> WARNING: No comma found in if statement', 'yellow')
+					statement = if_statement[0]
+
 				words = nltk.word_tokenize(statement)
 				firstWord = words[0]
 				if firstWord.lower() == 'verify':
@@ -444,9 +458,18 @@ def processResolution(steps, title, key):
 					
 					# Set step_list variables
 					step_type = 'if_yes_no_yes_no'
-					if_question = returnList[0]
-					new_bool_var = returnList[1]
+					try:
+						if_question = returnList[0]
+					except:
+						cprint('    >> WARNING: yesNoStepParser() didn\'t return if_question', 'yellow')
+						if_question = step
 
+					try:
+						new_bool_var = returnList[1]
+					except:
+						cprint('    >> WARNING: yesNoStepParser() didn\'t return new_bool_var', 'yellow')
+						new_bool_var = 'error_bool'
+					
 					# Add new bool to dictionary
 					bool_dict[new_bool_var] = None
 
@@ -455,8 +478,11 @@ def processResolution(steps, title, key):
 					# if_yes_no_conditional_update_domain_knowledge
 					###############################################
 					step_type = 'if_yes_no_conditional_update_domain_knowledge'
-					if_question = "Would you like to update your {}".format(nouns[-1])
-
+					try:
+						if_question = "Would you like to update your {}".format(nouns[-1])
+					except:
+						cprint('    >> WARNING: if_yes_no_conditional_update_domain_knowledge step didn\'t contain a noun...', 'yellow')
+						if_question = "Would you like to update your {}".format('<missing noun placeholder>')
 
 
 			elif keyed_noun_bool_exists:
@@ -466,10 +492,17 @@ def processResolution(steps, title, key):
 				updateStepList = updateStepParser(step)
 
 				# Set variables for step_list
-				modStep = updateStepList[0]
-				step_type = 'conditional_update_domain_knowledge'
-				update_domain_var = updateStepList[1]
-				ref_bool_var = updateStepList[1] + "_bool"
+				try:
+					modStep = updateStepList[0]
+					step_type = 'conditional_update_domain_knowledge'
+					update_domain_var = updateStepList[1]
+					ref_bool_var = updateStepList[1] + "_bool"
+				except:
+					cprint('    >> WARNING: updateStepList didn\'t return expected number of items', 'yellow')
+					modStep = step
+					step_type = 'conditional_update_domain_knowledge'
+					update_domain_var = 'error_domain_var'
+					ref_bool_var = 'error_domain_var' + "_bool"
 
 
 		################################################
@@ -556,9 +589,9 @@ def updateStepParser(sentence):
 		try:
 			verb = getPastParticiple(verb_entities[0].lower())
 		except:
-			cprint('    >> ERROR: Past participle generation unsuccessful for {}.'.format(verb_entities[0]), red)
+			cprint('    >> ERROR: Past participle generation unsuccessful for {}.'.format(verb_entities[0]), 'red')
 	else:
-		cprint('    >> ERROR: No verbs found.'.format(verb_entities[0]), red)
+		cprint('    >> ERROR: No verbs found.'.format(verb_entities[0]), 'red')
 		verb = 'FAIL'
 
 	new_statement = 'What would you like your new {} to be?'.format(noun)
