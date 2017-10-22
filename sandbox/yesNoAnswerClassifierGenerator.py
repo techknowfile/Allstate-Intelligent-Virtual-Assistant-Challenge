@@ -59,8 +59,8 @@ classifier = nltk.NaiveBayesClassifier.train(training_set)
 ############################################################
 # Show accuracy of the classifier
 # ############################################################
-# print("Naive Bayes Algo accuracy: ", (nltk.classify.accuracy(classifier, testing_set))*100)
-# classifier.show_most_informative_features(10)
+print("Naive Bayes Algo accuracy: ", (nltk.classify.accuracy(classifier, testing_set))*100)
+classifier.show_most_informative_features(10)
 
 save_classifier = open("yesNoAnswerClassifier.pickle", "wb")
 pickle.dump(classifier, save_classifier)
